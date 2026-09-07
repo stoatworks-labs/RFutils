@@ -1,0 +1,119 @@
+# Build the site and put it in front of visitors.
+#
+# Until this existed, RFutils shipped only when somebody remembered to run
+# `cf-run npx wrangler deploy` from a laptop.
+#
+# A workspace monorepo where the site has its own target: `build:static` builds
+# @rfutils/shared first and then the web package's static cut, into
+# packages/web/dist-static. Plain `build` also builds the server, which this
+# Worker does not serve.
+#
+# The Worker is named rfutils, lowercase, while the repo is RFutils.
+#
+# Deliberately the same shape as the rest of the fleet's deploy.yml, so a fix to
+# one is obvious in the others. See negative-space for the original.
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/dependabot.yml"
+  workflow_dispatch:
+
+# Newest push wins. Cancelling an in-flight build is safe: wrangler uploads the
+# assets first and activates the version as one step at the end, so a run killed
+# part way through never becomes the live version.
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # Fail in a second rather than after a build. A deploy that cannot
+      # authenticate is the whole point of this job failing to happen.
+      - name: Check the Cloudflare token is present
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TOKEN:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is not set on this repository, so the"
+            echo "::error::site cannot be deployed. Create a Cloudflare API token with"
+            echo "::error::the 'Edit Cloudflare Workers' template scoped to this account,"
+            echo "::error::then:"
+            echo "::error::  gh secret set CLOUDFLARE_API_TOKEN --repo stoatworks-labs/RFutils"
+            echo "::error::cf-run already uses such a token from the login keychain under"
+            echo "::error::the service name 'stoatworks-cloudflare'; the same one works here."
+            exit 1
+          fi
+          echo "token present - ok"
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm run build:static
+
+      # A React major mismatch builds green and renders an empty page (RFutils #22,
+      # three weeks of it). Unit tests run in node and cannot see that; this loads
+      # the built site in a real browser.
+      - name: Smoke-check the site
+        uses: stoatworks-labs/smoke-check@v1
+        with:
+          dir: packages/web/dist-static
+
+      # wrangler is pinned rather than left to resolve to latest, and Dependabot's
+      # github-actions ecosystem only bumps `uses:` refs, never a version inside a
+      # `run:` — so bump this deliberately, in step with the rest of the fleet.
+      - name: Deploy to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+        run: npx --yes wrangler@4.116.0 deploy
+
+      # Prove it actually landed, against the domain a visitor uses. The whole body
+      # cannot be compared: Cloudflare injects a bot-management script before
+      # </body> carrying a per-request nonce, so no two responses are identical.
+      #
+      # -F on the grep is load-bearing. Without it the $ signs are read as
+      # end-of-line anchors, the pattern matches nothing, and the filter silently
+      # does nothing.
+      - name: Check the live site is serving this build
+        run: |
+          set -euo pipefail
+          want=$(sed -n '1,/<\/head>/p' packages/web/dist-static/index.html \
+                 | grep -vF '__CF$cv$params' | shasum -a 256 | cut -d' ' -f1)
+          echo "expecting the live <head> to hash to $want"
+          for attempt in 1 2 3 4 5; do
+            got=$(curl -sS --max-time 30 "https://rfutils.stoatworks-labs.com/" \
+                  | sed -n '1,/<\/head>/p' | grep -vF '__CF$cv$params' \
+                  | shasum -a 256 | cut -d' ' -f1 || true)
+            if [ "$got" = "$want" ]; then
+              echo "live site is serving this build (attempt $attempt)"
+              exit 0
+            fi
+            echo "not there yet, got $got — retrying in 10s (attempt $attempt)"
+            sleep 10
+          done
+          echo "::error::Deployed, but https://rfutils.stoatworks-labs.com/ is still not serving this"
+          echo "::error::build's <head>. The upload succeeded, so this is the edge"
+          echo "::error::serving something else — check the Worker's routes."
+          exit 1
