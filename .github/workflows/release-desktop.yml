@@ -35,8 +35,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: macos-aarch64,  os: macos-14,       node_platform: darwin-arm64, rust_target: aarch64-apple-darwin,  bundles: app }
-          - { name: macos-x86_64,   os: macos-14,       node_platform: darwin-x64,   rust_target: x86_64-apple-darwin,   bundles: app }
+          # ONE macOS build for both architectures: Tauri's
+          # universal-apple-darwin target lipos the two slices, and
+          # NODE_PLATFORM=darwin-universal makes prepare.sh lipo the embedded
+          # Node runtime to match. A fat app around a thin runtime would launch
+          # on an Intel Mac and then fail to start its server, which is exactly
+          # what the old macos-x86_64 row shipped.
+          #
+          # rust_target is what rustup installs (universal-apple-darwin is a
+          # Tauri bundling target, not a rustup one); tauri_target is what
+          # `tauri build` is given and what names the output directory.
+          - { name: macos-universal, os: macos-14,       node_platform: darwin-universal, rust_target: 'aarch64-apple-darwin,x86_64-apple-darwin', tauri_target: universal-apple-darwin, bundles: app }
           - { name: windows-x86_64, os: windows-latest, node_platform: win-x64,      rust_target: x86_64-pc-windows-msvc, bundles: 'nsis,msi' }
           - { name: linux-x86_64,   os: ubuntu-22.04,   node_platform: linux-x64,    rust_target: x86_64-unknown-linux-gnu, bundles: 'deb,rpm' }
     steps:
@@ -72,7 +81,7 @@ jobs:
         shell: bash
         # tauri.conf.json only lists app,dmg, so the bundles are named
         # explicitly per platform rather than relying on the config.
-        run: cd launcher && npx --no-install tauri build --target ${{ matrix.rust_target }} --bundles ${{ matrix.bundles }}
+        run: cd launcher && npx --no-install tauri build --target ${{ matrix.tauri_target || matrix.rust_target }} --bundles ${{ matrix.bundles }}
 
       # The x86_64 job is a cross-compile, so its target directory holds both
       # host and target artefacts — and the embedded Node runtime (~111 MB) is
@@ -85,9 +94,53 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         shell: bash
         run: |
-          target="launcher/src-tauri/target/${{ matrix.rust_target }}/release"
-          rm -rf "$target/build" "$target/deps" "$target/incremental" "$target/.fingerprint"
+          # A universal build compiles under the two REAL triples and lipos the
+          # result into target/universal-apple-darwin, so the intermediates
+          # worth deleting are the per-arch ones — twice as much as before, on
+          # the job that already ran a runner out of space once.
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do
+            d="launcher/src-tauri/target/$t/release"
+            rm -rf "$d/build" "$d/deps" "$d/incremental" "$d/.fingerprint"
+          done
           df -h / | tail -1
+
+      # EVERY Mach-O in the bundle, not just Contents/MacOS/<exe>. This app
+      # embeds a Node runtime, and a fat wrapper around a thin runtime launches
+      # on an Intel Mac and then dies when it starts its server — which is
+      # precisely the bug the shipped v0.4.3 x86_64 build had. Checking only the
+      # main executable would have passed it.
+      #
+      # Captured and matched with `case`, never piped into grep: steps run as
+      # `bash -eo pipefail`, so grep exiting at its first match SIGPIPEs lipo
+      # and fails the step BECAUSE the match was found.
+      - name: Verify the macOS bundle is universal
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          appdir="launcher/src-tauri/target/${{ matrix.tauri_target }}/release/bundle/macos"
+          app="RFutils.app"
+          [ -d "$appdir/$app" ] || { echo "no .app produced" >&2; exit 1; }
+          found=0
+          while IFS= read -r f; do
+            __archs="$( lipo -archs "$f" 2>/dev/null )" || continue
+            [ -n "$__archs" ] || continue
+            found=$((found+1))
+            echo "${f#$appdir/$app/}: $__archs"
+            case "$__archs" in
+              *arm64*) ;;
+              *) echo "expected an arm64 slice in $f, got: $__archs" >&2; exit 1 ;;
+            esac
+            case "$__archs" in
+              *x86_64*) ;;
+              *) echo "expected an x86_64 slice in $f, got: $__archs" >&2; exit 1 ;;
+            esac
+          done < <(find "$appdir/$app" -type f -perm -u+x)
+          # A find that matched nothing would pass every check above in silence.
+          # This bundle must have at least the app binary and the node runtime.
+          if [ "$found" -lt 2 ]; then
+            echo "expected at least the app binary and the embedded node, found $found" >&2
+            exit 1
+          fi
 
       - name: Installers (macOS)
         if: startsWith(matrix.os, 'macos')
@@ -102,7 +155,7 @@ jobs:
           version="${version#v}"
           case "$version" in [0-9]*) ;; *) version="$(node -p "require('./package.json').version")" ;; esac
           rl_init "RFutils" rfutils "$version" com.stoatworks.rfutils "$GITHUB_WORKSPACE/out"
-          appdir="launcher/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
+          appdir="launcher/src-tauri/target/${{ matrix.tauri_target }}/release/bundle/macos"
           app="RFutils.app"
           if [ ! -d "$appdir/$app" ]; then echo "no .app produced" >&2; exit 1; fi
           stage="$RUNNER_TEMP/stage-mac"
