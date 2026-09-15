@@ -29,6 +29,7 @@ import type {
   ProfileCatalog,
 } from '@rfutils/shared';
 import { EXPORT_FORMATS, builtinCatalog, classifyUpload, emptyInventory } from '@rfutils/shared';
+import type { UploadReadResult } from '@rfutils/shared/formats';
 import { isPdfFile, type ConvertResponse } from './api.js';
 
 /** Strip a UTF-8 BOM, as the server's `decodeText` does. */
@@ -46,30 +47,21 @@ export async function convertFileLocal(
     // direct caller.
     throw new Error('This is a PDF. Ofcom PMSE licence schedules go through convertPmsePdf.');
   }
-  const { readText, readHeaderAndRows, sniffMapping } = await import('@rfutils/shared/formats');
+  const { readUpload } = await import('@rfutils/shared/formats');
   const text = decodeText(await file.text());
 
-  let format: ConvertResponse['format'];
-  let list: CoordinationList;
+  let read: UploadReadResult;
   try {
-    ({ format, list } = readText(text, mapping));
+    read = readUpload(text, mapping);
   } catch (err) {
     throw new Error(`Could not parse this file: ${(err as Error).message}`, { cause: err });
   }
-
-  const response: ConvertResponse = {
-    format,
+  return {
+    ...read,
     filename: file.name,
-    channelCount: list.channels.length,
-    list,
+    channelCount: read.list.channels.length,
     exportFormats: EXPORT_FORMATS,
   };
-  if (format === 'generic') {
-    const { header } = readHeaderAndRows(text);
-    response.header = header;
-    response.suggestedMapping = sniffMapping(header);
-  }
-  return response;
 }
 
 export async function exportModelLocal(

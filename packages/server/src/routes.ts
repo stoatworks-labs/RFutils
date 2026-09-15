@@ -2,14 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import multer from 'multer';
 import type { CoordinationList, ExportFormat, CrosspointRequest } from '@rfutils/shared';
 import { EXPORT_FORMATS, classifyUpload } from '@rfutils/shared';
-import {
-  readText,
-  writeFormat,
-  detectFormat,
-  readHeaderAndRows,
-  sniffMapping,
-  type FieldMapping,
-} from '@rfutils/shared/formats';
+import { readUpload, writeFormat, detectFormat, type FieldMapping } from '@rfutils/shared/formats';
 import { convertLicence, generateShow } from '@rfutils/shared/pmse';
 import type { MonitorService } from './monitor/index.js';
 import { coordinate, coordinateRadios, analyze } from '@rfutils/shared/coordination';
@@ -86,20 +79,13 @@ export function createApiRouter(monitor: MonitorService): Router {
       }
     }
     try {
-      const { format, list } = readText(text, mapping);
-      const response: Record<string, unknown> = {
-        format,
+      const read = readUpload(text, mapping);
+      res.json({
+        ...read,
         filename: req.file.originalname,
-        channelCount: list.channels.length,
-        list,
+        channelCount: read.list.channels.length,
         exportFormats: EXPORT_FORMATS,
-      };
-      if (format === 'generic') {
-        const { header } = readHeaderAndRows(text);
-        response.header = header;
-        response.suggestedMapping = sniffMapping(header);
-      }
-      res.json(response);
+      });
     } catch (err) {
       res.status(422).json({ error: `Could not parse this file: ${(err as Error).message}` });
     }

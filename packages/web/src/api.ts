@@ -13,7 +13,6 @@ import type {
   CompanionStatus,
   CoordinationList,
   CrosspointRequest,
-  DetectedFormat,
   ExportFormat,
   ExportFormatInfo,
   FieldMapping,
@@ -29,6 +28,7 @@ import type {
   ProfileCatalog,
 } from '@rfutils/shared';
 import { classifyUpload } from '@rfutils/shared';
+import type { UploadReadResult } from '@rfutils/shared/formats';
 import { staticBuild } from './buildMode.js';
 
 /** The browser-side implementations, loaded only by the static build. */
@@ -62,14 +62,11 @@ export async function isPdfFile(file: File): Promise<boolean> {
   return classifyUpload(head, file.name, file.type) === 'pdf';
 }
 
-export interface ConvertResponse {
-  format: DetectedFormat;
+/** What /api/convert (or convertFileLocal) returns: the shared read result plus the envelope. */
+export interface ConvertResponse extends UploadReadResult {
   filename: string;
   channelCount: number;
-  list: CoordinationList;
   exportFormats: ExportFormatInfo[];
-  header?: string[];
-  suggestedMapping?: FieldMapping;
 }
 
 export async function convertFile(file: File, mapping?: FieldMapping): Promise<ConvertResponse> {

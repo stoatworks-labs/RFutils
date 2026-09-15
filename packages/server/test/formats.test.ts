@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { readText, writeFormat } from '@rfutils/shared/formats';
+import { readText, readUpload, writeFormat } from '@rfutils/shared/formats';
 import { detectFormat } from '@rfutils/shared/formats';
 import { parseFrequencyToMhz, formatKhz, parseWwbGroupChannel } from '@rfutils/shared/formats';
 import { generateShow } from '@rfutils/shared/pmse';
@@ -85,5 +85,49 @@ describe('.shw show generator', () => {
     expect(shw).toContain('470100'); // 470.1 MHz in kHz
     expect(shw).toContain('471200');
     expect(shw).toContain('<name>Test</name>');
+  });
+});
+
+describe('readUpload: what the Convert tab gets from one text file', () => {
+  // Headers that match none of the aliases — the case that needs the dialog most.
+  const odd = 'Mic,Carrier [MHz],Pack\nLead vox,606.1,HH1\nGtr,607.7,BP2\n';
+
+  it('returns the dialog inputs instead of failing when nothing can be guessed', () => {
+    const r = readUpload(odd);
+    expect(r.format).toBe('generic');
+    expect(r.list.channels).toEqual([]);
+    expect(r.header).toEqual(['Mic', 'Carrier [MHz]', 'Pack']);
+    expect(r.suggestedMapping?.name).toBeNull();
+    expect(r.suggestedMapping?.frequencyMhz).toBeNull();
+    // readText, the strict reader, still refuses the same input
+    expect(() => readText(odd)).toThrow(/name or frequency/);
+  });
+
+  it('parses the same file once the user has mapped it', () => {
+    const r = readUpload(odd, { name: 0, frequencyMhz: 1, channel: 2 });
+    expect(r.list.channels.map((c) => [c.name, c.frequencyMhz, c.channel])).toEqual([
+      ['Lead vox', 606.1, 'HH1'],
+      ['Gtr', 607.7, 'BP2'],
+    ]);
+    expect(r.header).toEqual(['Mic', 'Carrier [MHz]', 'Pack']);
+  });
+
+  it('lets a mapping the user supplied fail loudly', () => {
+    expect(() => readUpload(odd, { name: null, frequencyMhz: null })).toThrow(/name or frequency/);
+  });
+
+  it('still parses a generic CSV whose header it can guess', () => {
+    const r = readUpload('Name,Frequency (MHz)\nLead,606.100\n');
+    expect(r.format).toBe('generic');
+    expect(r.list.channels).toHaveLength(1);
+    expect(r.suggestedMapping).toMatchObject({ name: 0, frequencyMhz: 1 });
+  });
+
+  it('carries no dialog inputs for a recognised vendor format', () => {
+    const r = readUpload(read('wsm_report.html'));
+    expect(r.format).toBe('wsm-html');
+    expect(r.list.channels).toHaveLength(11);
+    expect(r.header).toBeUndefined();
+    expect(r.suggestedMapping).toBeUndefined();
   });
 });

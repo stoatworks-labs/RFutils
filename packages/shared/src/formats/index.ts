@@ -5,6 +5,7 @@
  */
 
 import type { CoordinationList, DetectedFormat, ExportFormat } from '../index.js';
+import { emptyList } from '../index.js';
 import { detectFormat } from './detect.js';
 import { readWwbXml } from './wwbXml.js';
 import { readWsmProject } from './wsmXml.js';
@@ -12,7 +13,12 @@ import { readWsmHtmlReport } from './wsmHtml.js';
 import { readWsmCsv } from './wsm.js';
 import { readWwbReportCsv } from './wwbReport.js';
 import { readWwbFile } from './wwb.js';
-import { parseGenericCsv, type FieldMapping } from './csvGeneric.js';
+import {
+  parseGenericCsv,
+  readHeaderAndRows,
+  sniffMapping,
+  type FieldMapping,
+} from './csvGeneric.js';
 import { writeWwbFrequencyList, writeWwbInventoryCsv } from './wwb.js';
 import { writeWsmCsv } from './wsm.js';
 import { writeGenericCsv } from './csvGeneric.js';
@@ -31,7 +37,40 @@ export interface ReadResult {
  * is supplied it is used for generic CSV (the column-map dialog case).
  */
 export function readText(text: string, mapping?: FieldMapping): ReadResult {
+  return readAs(detectFormat(text), text, mapping);
+}
+
+export interface UploadReadResult extends ReadResult {
+  /** Generic CSV only: the header row, for the column-map dialog. */
+  header?: string[];
+  /** Generic CSV only: the best guess at which column is which. */
+  suggestedMapping?: FieldMapping;
+}
+
+/**
+ * Everything the Convert tab needs from one text upload: the parsed list,
+ * plus — for a generic CSV — the header and a suggested column mapping so
+ * the UI can offer its column-map dialog.
+ *
+ * A generic CSV whose header matches none of the known aliases cannot be
+ * parsed until somebody maps it. With no `mapping` supplied that case comes
+ * back as an empty list *with* the dialog's inputs rather than as an error,
+ * because the dialog is how the user gets out of it. A mapping the user did
+ * supply is allowed to fail, and the error says why.
+ */
+export function readUpload(text: string, mapping?: FieldMapping): UploadReadResult {
   const format = detectFormat(text);
+  if (format !== 'generic') return readAs(format, text, mapping);
+
+  const { header } = readHeaderAndRows(text);
+  const suggestedMapping = sniffMapping(header);
+  const nothingToGoOn =
+    !mapping && suggestedMapping.name == null && suggestedMapping.frequencyMhz == null;
+  const list = nothingToGoOn ? emptyList('generic-csv') : parseGenericCsv(text, mapping);
+  return { format, list, header, suggestedMapping };
+}
+
+function readAs(format: DetectedFormat, text: string, mapping?: FieldMapping): ReadResult {
   switch (format) {
     case 'wwb-xml':
       return { format, list: readWwbXml(text) };
