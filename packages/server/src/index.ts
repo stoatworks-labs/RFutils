@@ -36,10 +36,15 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api', createApiRouter(monitor));
 
 // Serve the built web UI in production (dev uses Vite's own server + proxy).
+// Express 5 requires the catch-all to be a named wildcard — a bare '*' throws
+// from path-to-regexp at startup, and this branch only runs when web/dist
+// exists, which is exactly the packaged app and never `npm run dev`. The
+// fallback is sent relative to `root` so that a dot-directory anywhere in the
+// install path (send refuses those by default) can't turn deep links into 404s.
 const webDist = path.resolve(fileURLToPath(import.meta.url), '../../../web/dist');
 if (fs.existsSync(webDist)) {
   app.use(express.static(webDist));
-  app.get('*', (_req, res) => res.sendFile(path.join(webDist, 'index.html')));
+  app.get('/{*splat}', (_req, res) => res.sendFile('index.html', { root: webDist }));
 }
 
 const server = http.createServer(app);
