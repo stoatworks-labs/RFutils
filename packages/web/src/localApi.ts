@@ -28,8 +28,8 @@ import type {
   PmseConversion,
   ProfileCatalog,
 } from '@rfutils/shared';
-import { EXPORT_FORMATS, builtinCatalog, emptyInventory } from '@rfutils/shared';
-import type { ConvertResponse } from './api.js';
+import { EXPORT_FORMATS, builtinCatalog, classifyUpload, emptyInventory } from '@rfutils/shared';
+import { isPdfFile, type ConvertResponse } from './api.js';
 
 /** Strip a UTF-8 BOM, as the server's `decodeText` does. */
 function decodeText(text: string): string {
@@ -40,6 +40,12 @@ export async function convertFileLocal(
   file: File,
   mapping?: FieldMapping
 ): Promise<ConvertResponse> {
+  if (await isPdfFile(file)) {
+    // Mirrors the server's 415: the Convert tab routes PDFs to
+    // convertPmsePdfLocal before it gets here, so this only fires for a
+    // direct caller.
+    throw new Error('This is a PDF. Ofcom PMSE licence schedules go through convertPmsePdf.');
+  }
   const { readText, readHeaderAndRows, sniffMapping } = await import('@rfutils/shared/formats');
   const text = decodeText(await file.text());
 
@@ -107,18 +113,17 @@ async function configurePdfWorker(): Promise<void> {
 }
 
 export async function convertPmsePdfLocal(file: File): Promise<PmseConversion> {
-  const isPdf =
-    file.type === 'application/pdf' ||
-    file.type === 'application/x-pdf' ||
-    file.name.toLowerCase().endsWith('.pdf');
-  if (!isPdf) throw new Error('Please upload a PDF file.');
+  const data = new Uint8Array(await file.arrayBuffer());
+  if (classifyUpload(data, file.name, file.type) !== 'pdf') {
+    throw new Error('Please upload a PDF file.');
+  }
 
   await configurePdfWorker();
   const { convertLicence } = await import('@rfutils/shared/pmse');
 
   let conversion: PmseConversion;
   try {
-    conversion = await convertLicence(new Uint8Array(await file.arrayBuffer()));
+    conversion = await convertLicence(data);
   } catch (err) {
     throw new Error(`Could not parse this PDF: ${(err as Error).message}`, { cause: err });
   }

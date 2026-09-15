@@ -1,7 +1,8 @@
 /**
  * Guess which format a loaded file is in. Ported from wsm-wwb-bridge/detect.py.
- * Returns one of the DetectedFormat values (text-based formats only; the
- * PMSE PDF path is detected upstream by content type).
+ * Returns one of the DetectedFormat values (text-based formats only; a PDF
+ * is recognised from its bytes by `classifyUpload` in `../upload.ts` before
+ * the file is ever decoded as text, and goes to the PMSE parser instead).
  */
 
 import type { DetectedFormat } from '../index.js';

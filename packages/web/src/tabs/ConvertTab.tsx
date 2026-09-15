@@ -4,14 +4,19 @@ import type {
   ExportFormat,
   ExportFormatInfo,
   FieldMapping,
+  PmseConversion,
 } from '@rfutils/shared';
 import { EXPORT_FORMATS } from '@rfutils/shared';
-import { convertFile, exportModel, type ConvertResponse } from '../api.js';
+import {
+  convertFile,
+  convertPmsePdf,
+  exportModel,
+  isPdfFile,
+  type ConvertResponse,
+} from '../api.js';
 import { FileDrop } from '../components/FileDrop.js';
-import { PmseConvert } from './PmseConvert.js';
+import { PmseResult } from './PmseResult.js';
 import type { JSX } from 'react';
-
-type Mode = 'coordination' | 'pmse';
 
 const FORMAT_LABELS: Record<string, string> = {
   'wwb-xml': 'Shure WWB (.shw / .cws)',
@@ -35,6 +40,22 @@ const MAPPING_FIELDS: ChannelField[] = [
   'zone',
 ];
 
+const ACCEPT = [
+  '.shw',
+  '.cws',
+  '.wsm',
+  '.csv',
+  '.html',
+  '.htm',
+  '.txt',
+  '.pdf',
+  'text/csv',
+  'text/html',
+  'text/plain',
+  'application/xml',
+  'application/pdf',
+].join(',');
+
 function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -44,80 +65,126 @@ function download(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function ConvertTab(): JSX.Element {
-  const [mode, setMode] = useState<Mode>('coordination');
+/** What the last drop parsed into; the tab shows the panel for its kind. */
+type Loaded =
+  | { kind: 'coordination'; file: File; result: ConvertResponse; mapping: FieldMapping }
+  | { kind: 'pmse'; result: PmseConversion };
 
-  return (
-    <div className="tab-panel">
-      <div className="segmented">
-        <button
-          className={mode === 'coordination' ? 'segmented__btn segmented__btn--active' : 'segmented__btn'}
-          onClick={() => setMode('coordination')}
-        >
-          Coordination files (WSM · WWB · CSV)
-        </button>
-        <button
-          className={mode === 'pmse' ? 'segmented__btn segmented__btn--active' : 'segmented__btn'}
-          onClick={() => setMode('pmse')}
-        >
-          Ofcom PMSE licence (PDF)
-        </button>
-      </div>
-      {mode === 'coordination' ? <CoordinationConvert /> : <PmseConvert onDownload={download} />}
-    </div>
-  );
+function describe(loaded: Loaded): string {
+  if (loaded.kind === 'pmse') {
+    const n = loaded.result.assignmentCount;
+    return `Detected ${FORMAT_LABELS['pmse-pdf']} — ${n} frequency assignment(s).`;
+  }
+  const { format, channelCount } = loaded.result;
+  return `Detected ${FORMAT_LABELS[format] ?? format} — ${channelCount} channel(s).`;
 }
 
-function CoordinationConvert(): JSX.Element {
-  const [result, setResult] = useState<ConvertResponse | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [mapping, setMapping] = useState<FieldMapping>({});
-  const [status, setStatus] = useState<string>('');
+/**
+ * One drop zone for everything. The file's own bytes decide whether it goes
+ * to the Ofcom PMSE licence parser or the coordination-file detector, so the
+ * user never has to say which kind of file it is.
+ */
+export function ConvertTab(): JSX.Element {
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [status, setStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>('wwb-frequency-list');
   const [busy, setBusy] = useState(false);
 
-  const runConvert = async (f: File, m?: FieldMapping): Promise<void> => {
+  /**
+   * Run one parse, reporting into the shared status/error lines. A failed
+   * first read clears the panel; a failed re-read (a column mapping the
+   * parser rejects) keeps the last good result so the mapping dialog stays.
+   */
+  const run = async (
+    label: string,
+    work: () => Promise<Loaded>,
+    { keepOnError = false } = {}
+  ): Promise<void> => {
     setBusy(true);
     setError(null);
-    setStatus(`Parsing ${f.name}…`);
+    setStatus(label);
     try {
-      const res = await convertFile(f, m);
-      setResult(res);
-      if (res.suggestedMapping) setMapping(res.suggestedMapping);
-      setStatus(
-        `Detected ${FORMAT_LABELS[res.format] ?? res.format} — ${res.channelCount} channel(s).`
-      );
+      const next = await work();
+      setLoaded(next);
+      setStatus(describe(next));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setResult(null);
+      if (!keepOnError) setLoaded(null);
       setStatus('');
     } finally {
       setBusy(false);
     }
   };
 
-  const onPick = (f: File | undefined): void => {
-    if (!f) return;
-    setFile(f);
-    void runConvert(f);
+  const readCoordination = async (file: File, mapping?: FieldMapping): Promise<Loaded> => {
+    const result = await convertFile(file, mapping);
+    return {
+      kind: 'coordination',
+      file,
+      result,
+      mapping: mapping ?? result.suggestedMapping ?? {},
+    };
   };
 
-  const remapAndConvert = (field: ChannelField, colIndex: number | null): void => {
-    const next = { ...mapping, [field]: colIndex };
-    setMapping(next);
-    if (file) void runConvert(file, next);
+  const onPick = (file: File | undefined): void => {
+    if (!file) return;
+    void run(`Reading ${file.name}…`, async () => {
+      if (await isPdfFile(file)) return { kind: 'pmse', result: await convertPmsePdf(file) };
+      return readCoordination(file);
+    });
   };
+
+  const onRemap = (field: ChannelField, colIndex: number | null): void => {
+    if (loaded?.kind !== 'coordination') return;
+    const mapping = { ...loaded.mapping, [field]: colIndex };
+    void run(
+      `Re-reading ${loaded.file.name}…`,
+      () => readCoordination(loaded.file, mapping),
+      { keepOnError: true }
+    );
+  };
+
+  return (
+    <div className="tab-panel">
+      <FileDrop
+        accept={ACCEPT}
+        label="Drop a WWB / WSM export, a CSV or an Ofcom PMSE licence PDF here, or click to choose"
+        hint="Shure .shw / .cws · Sennheiser .wsm · WSM coordination report (HTML) · WSM or WWB CSV · bare frequency list · any other CSV, with column mapping · Ofcom PMSE licence schedule PDF — the format is detected from the file itself"
+        onPick={onPick}
+      />
+      {status && <p className="status">{status}</p>}
+      {error && <p className="status status--error">{error}</p>}
+
+      {loaded?.kind === 'coordination' && (
+        <CoordinationResult loaded={loaded} busy={busy} onRemap={onRemap} onError={setError} />
+      )}
+      {loaded?.kind === 'pmse' && <PmseResult result={loaded.result} onDownload={download} />}
+    </div>
+  );
+}
+
+/** A parsed coordination file: the column-map dialog (generic CSV only), the export bar and the channel table. */
+function CoordinationResult({
+  loaded,
+  busy,
+  onRemap,
+  onError,
+}: {
+  loaded: Extract<Loaded, { kind: 'coordination' }>;
+  busy: boolean;
+  onRemap: (field: ChannelField, colIndex: number | null) => void;
+  onError: (message: string) => void;
+}): JSX.Element {
+  const { result, mapping } = loaded;
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('wwb-frequency-list');
 
   const doExport = async (): Promise<void> => {
-    if (!result) return;
-    setError(null);
     try {
       const info = EXPORT_FORMATS.find((x) => x.id === exportFormat)!;
       const blob = await exportModel(result.list, exportFormat);
       download(blob, `rfutils-export.${info.extension}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      onError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -125,15 +192,7 @@ function CoordinationConvert(): JSX.Element {
 
   return (
     <>
-      <FileDrop
-        accept=".shw,.cws,.wsm,.csv,.html,.htm,.txt,text/csv,text/html,text/plain,application/xml"
-        label="Drop a WWB / WSM export or CSV here, or click to choose"
-        onPick={onPick}
-      />
-      {status && <p className="status">{status}</p>}
-      {error && <p className="status status--error">{error}</p>}
-
-      {result?.format === 'generic' && result.header && (
+      {result.format === 'generic' && result.header && (
         <div className="mapping">
           <h3>Map columns</h3>
           <p className="mapping__hint">
@@ -146,7 +205,7 @@ function CoordinationConvert(): JSX.Element {
                 <select
                   value={mapping[field] ?? ''}
                   onChange={(e) =>
-                    remapAndConvert(field, e.target.value === '' ? null : Number(e.target.value))
+                    onRemap(field, e.target.value === '' ? null : Number(e.target.value))
                   }
                 >
                   <option value="">—</option>
@@ -162,7 +221,7 @@ function CoordinationConvert(): JSX.Element {
         </div>
       )}
 
-      {result && result.channelCount > 0 && (
+      {result.channelCount > 0 && (
         <>
           <div className="export-bar">
             <label>

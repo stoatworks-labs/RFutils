@@ -157,35 +157,13 @@ body {
   color: var(--warn);
 }
 
-/* --- segmented control --- */
-.segmented {
-  display: inline-flex;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
-  align-self: flex-start;
-}
-.segmented__btn {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.segmented__btn--active {
-  background: var(--panel-2);
-  color: var(--text);
-}
-
 /* --- dropzone --- */
 .dropzone {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border: 2px dashed var(--border);
   border-radius: 10px;
   padding: 36px 16px;
@@ -197,6 +175,11 @@ body {
 .dropzone--drag {
   border-color: var(--accent-2);
   background: rgba(110, 168, 254, 0.06);
+}
+.dropzone__hint {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.5;
 }
 
 /* --- status + callouts --- */

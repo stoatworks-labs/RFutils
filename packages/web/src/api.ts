@@ -28,6 +28,7 @@ import type {
   DiscoveredDevice,
   ProfileCatalog,
 } from '@rfutils/shared';
+import { classifyUpload } from '@rfutils/shared';
 import { staticBuild } from './buildMode.js';
 
 /** The browser-side implementations, loaded only by the static build. */
@@ -48,6 +49,17 @@ async function asJson<T>(res: Response): Promise<T> {
     throw new Error((body as { error?: string }).error ?? `Request failed (${res.status})`);
   }
   return body as T;
+}
+
+/**
+ * Which converter a dropped file belongs to — the server's `isPdfUpload`, on
+ * a File. Peeks at the first KiB, where a PDF header has to sit, so the
+ * Convert tab can route a licence to `convertPmsePdf` and everything else to
+ * `convertFile` without asking the user which it is.
+ */
+export async function isPdfFile(file: File): Promise<boolean> {
+  const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+  return classifyUpload(head, file.name, file.type) === 'pdf';
 }
 
 export interface ConvertResponse {

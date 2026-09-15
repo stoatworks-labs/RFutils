@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import multer from 'multer';
 import type { CoordinationList, ExportFormat, CrosspointRequest } from '@rfutils/shared';
-import { EXPORT_FORMATS } from '@rfutils/shared';
+import { EXPORT_FORMATS, classifyUpload } from '@rfutils/shared';
 import {
   readText,
   writeFormat,
@@ -29,6 +29,11 @@ function decodeText(buf: Buffer): string {
   let text = buf.toString('utf-8');
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // strip BOM
   return text;
+}
+
+/** Same routing rule the Convert tab applies before it picks an endpoint. */
+function isPdfUpload(file: Express.Multer.File): boolean {
+  return classifyUpload(file.buffer, file.originalname, file.mimetype) === 'pdf';
 }
 
 /**
@@ -62,6 +67,12 @@ export function createApiRouter(monitor: MonitorService): Router {
   router.post('/convert', upload.single('file'), (req: Request, res: Response) => {
     if (!req.file) {
       res.status(400).json({ error: 'No file uploaded (field name must be "file").' });
+      return;
+    }
+    if (isPdfUpload(req.file)) {
+      res.status(415).json({
+        error: 'This is a PDF. Ofcom PMSE licence schedules go to POST /api/pmse/convert.',
+      });
       return;
     }
     const text = decodeText(req.file.buffer);
@@ -100,7 +111,8 @@ export function createApiRouter(monitor: MonitorService): Router {
       res.status(400).json({ error: 'No file uploaded.' });
       return;
     }
-    res.json({ format: detectFormat(decodeText(req.file.buffer)) });
+    const format = isPdfUpload(req.file) ? 'pmse-pdf' : detectFormat(decodeText(req.file.buffer));
+    res.json({ format });
   });
 
   /** Export a model to a target format. Body: { list, format }. */
@@ -141,11 +153,7 @@ export function createApiRouter(monitor: MonitorService): Router {
       res.status(400).json({ error: 'No PDF uploaded (field name must be "file").' });
       return;
     }
-    const isPdf =
-      req.file.mimetype === 'application/pdf' ||
-      req.file.mimetype === 'application/x-pdf' ||
-      req.file.originalname.toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
+    if (!isPdfUpload(req.file)) {
       res.status(400).json({ error: 'Please upload a PDF file.' });
       return;
     }

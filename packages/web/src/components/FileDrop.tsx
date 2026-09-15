@@ -5,10 +5,13 @@ import type { JSX } from 'react';
 export function FileDrop({
   accept,
   label,
+  hint,
   onPick,
 }: {
   accept: string;
   label: string;
+  /** Smaller second line — what the zone will take, when the label can't say it all. */
+  hint?: string;
   onPick: (file: File | undefined) => void;
 }): JSX.Element {
   const [drag, setDrag] = useState(false);
@@ -28,6 +31,7 @@ export function FileDrop({
     >
       <input type="file" accept={accept} onChange={(e) => onPick(e.target.files?.[0])} hidden />
       <span>{label}</span>
+      {hint && <span className="dropzone__hint">{hint}</span>}
     </label>
   );
 }
