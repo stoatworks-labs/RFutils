@@ -38,9 +38,13 @@ Parse an uploaded coordination file (WSM, WWB or generic CSV) into the internal 
 | `mapping` | string (JSON) | Optional column mapping for generic CSV. |
 
 For generic CSV the response also carries the detected header and a suggested column
-mapping, so the UI can offer a column-map dialog.
+mapping, so the UI can offer a column-map dialog. When none of the headers can be guessed
+and no `mapping` was supplied, the list comes back empty rather than as an error — the
+dialog is how the caller gets out of that — while a `mapping` that maps neither a name nor
+a frequency column fails with `422`.
 
-`400` if no file was uploaded under the field name `file`.
+`400` if no file was uploaded under the field name `file`; `415` if the file is a PDF
+(recognised by content, not by name) — those go to `/api/pmse/convert`.
 
 ### `POST /api/detect` *(multipart)*
 Identify a file's format without fully parsing it.
@@ -49,7 +53,8 @@ Identify a file's format without fully parsing it.
 { "format": "<detected format>" }
 ```
 
-`400` if no file was uploaded.
+A PDF is reported as `pmse-pdf` from its bytes (the `%PDF-` header within the first KiB);
+every other format is detected from the decoded text. `400` if no file was uploaded.
 
 ### `POST /api/export`
 Render a coordination list into one of the supported export formats.
@@ -62,11 +67,13 @@ Valid values for `format` are the members of `EXPORT_FORMATS` in `@rfutils/share
 if `list` or `format` is missing or the format is unknown.
 
 ### `POST /api/pmse/convert` *(multipart)*
-Convert an Ofcom PMSE licence schedule PDF into importable frequency data.
+Convert an Ofcom PMSE licence schedule PDF into importable frequency data. The upload is
+accepted as a PDF if its bytes say so, or failing that if its MIME type or `.pdf` name does —
+a licence with no extension is fine.
 
-`400` for a missing file; **`422` when the PDF parses but isn't a recognisable PMSE licence
-schedule** — that distinction matters, since it separates "you sent nothing" from "this
-isn't the document you think it is".
+`400` for a missing file or one that is not a PDF by any of those tests; **`422` when the PDF
+parses but isn't a recognisable PMSE licence schedule** — that distinction matters, since it
+separates "you sent nothing" from "this isn't the document you think it is".
 
 ---
 

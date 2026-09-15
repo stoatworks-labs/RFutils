@@ -16,8 +16,7 @@ programming receivers.
 
 | Tab | What it's for | Needs the local app |
 |---|---|---|
-| **Convert › Coordination files** | Move coordination data between Shure Wireless Workbench (WWB) and Sennheiser Wireless Systems Manager (WSM), or in and out of plain CSV | no |
-| **Convert › Ofcom PMSE licence** | Turn an Ofcom PMSE licence schedule PDF into importable frequency data | no |
+| **Convert** | Move coordination data between Shure Wireless Workbench (WWB) and Sennheiser Wireless Systems Manager (WSM), in and out of plain CSV, or turn an Ofcom PMSE licence schedule PDF into importable frequency data — one drop zone, the file's type is detected | no |
 | **Inventory** | Keep a list of the receivers and transmitters you own | no |
 | **Coordination** | Calculate an intermodulation-clean set of frequencies | no |
 | **Allocation** | Work out which frequencies go to which channel | no |
@@ -68,10 +67,12 @@ from a network problem.
 
 ## Converting a coordination file
 
-1. Go to **Convert › Coordination files**.
-2. Drop in your `.wwb`, WSM export or CSV. The format is detected automatically.
+1. Go to **Convert**.
+2. Drop in your `.shw`/`.cws`, WSM export or CSV. The format is detected automatically — there
+   is nothing to choose first, and the same zone takes a licence PDF (next section).
 3. For a plain CSV, RFutils reads the header and suggests which column is which. **Check the
-   suggested mapping** — it is a best guess from the column names.
+   suggested mapping** — it is a best guess from the column names. If it could guess nothing,
+   the table starts empty and fills in as you map the name and frequency columns.
 4. Choose your export format and download.
 5. **Open the result in WWB or WSM and confirm it looks right** before using it.
 
@@ -81,11 +82,13 @@ from a network problem.
 
 ## Importing an Ofcom PMSE licence
 
-1. Go to **Convert › Ofcom PMSE licence**.
-2. Upload the licence schedule PDF exactly as Ofcom issued it.
-3. If you get *"not a recognisable PMSE licence schedule"*, the file was readable but isn't the
-   expected document — check you have uploaded the schedule itself rather than a covering letter
-   or a re-saved copy.
+1. Go to **Convert**.
+2. Drop in the licence schedule PDF exactly as Ofcom issued it. RFutils recognises a PDF from its
+   contents, so it doesn't matter what the file is called or whether it still has its `.pdf`
+   extension.
+3. If you get *"No frequency assignments were found in this PDF"*, the file was readable but
+   isn't the expected document — check you have uploaded the schedule itself rather than a
+   covering letter or a re-saved copy.
 4. Export to your coordination software.
 
 ![The PMSE licence converter, with the parsed assignments from a licence schedule.](screenshots/convert-pmse.png)

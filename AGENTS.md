@@ -13,8 +13,8 @@ allocation and deployment services.
 
 | Merged tool | What it did | Where it lives now |
 |---|---|---|
-| `wsm-wwb-bridge` | Move coordination data between Shure Wireless Workbench and Sennheiser Wireless Systems Manager, plus any CSV | **Convert › Coordination files** |
-| `pmse-to-wwb` | Convert an Ofcom PMSE licence schedule PDF into WWB import files | **Convert › Ofcom PMSE licence** |
+| `wsm-wwb-bridge` | Move coordination data between Shure Wireless Workbench and Sennheiser Wireless Systems Manager, plus any CSV | **Convert** |
+| `pmse-to-wwb` | Convert an Ofcom PMSE licence schedule PDF into WWB import files | **Convert** (same drop zone — `classifyUpload` routes a PDF by its bytes) |
 | `MicWizard` | Discover networked Shure/Sennheiser/AES67 receivers, monitor audio/battery/RF | **Monitor** |
 
 Node/TypeScript, npm-workspaces monorepo. Public repo (github.com/stoatworks-labs/RFutils).

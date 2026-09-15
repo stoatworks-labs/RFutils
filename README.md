@@ -18,8 +18,8 @@ receivers in Monitor are the app's mock devices — no wireless rack was attache
 
 | Merged tool | What it did | Where it lives now |
 |---|---|---|
-| [wsm-wwb-bridge](https://github.com/stoatworks-labs/wsm-wwb-bridge) | Move coordination data between Shure Wireless Workbench (WWB) and Sennheiser Wireless Systems Manager (WSM), plus any CSV | **Convert › Coordination files** |
-| [pmse-to-wwb](https://github.com/stoatworks-labs/pmse-to-wwb) | Convert an Ofcom PMSE licence schedule PDF into WWB import files | **Convert › Ofcom PMSE licence** |
+| [wsm-wwb-bridge](https://github.com/stoatworks-labs/wsm-wwb-bridge) | Move coordination data between Shure Wireless Workbench (WWB) and Sennheiser Wireless Systems Manager (WSM), plus any CSV | **Convert** (drop the file) |
+| [pmse-to-wwb](https://github.com/stoatworks-labs/pmse-to-wwb) | Convert an Ofcom PMSE licence schedule PDF into WWB import files | **Convert** (drop the PDF) |
 | [MicWizard](https://github.com/stoatworks-labs/MicWizard) | Discover networked Shure/Sennheiser/AES67 receivers and monitor audio / battery / RF | **Monitor** |
 
 ```mermaid
@@ -201,6 +201,11 @@ then it's not needed.
 
 ## Convert
 
+One drop zone takes everything below. RFutils reads the file's own bytes to decide what it is
+— a PDF goes to the Ofcom licence parser, anything else to the coordination-file detector — so
+there is nothing to select first, and a licence dragged straight out of an email with no
+extension still lands in the right place.
+
 ### Coordination files (WSM · WWB · CSV)
 
 Drop a file and RFutils auto-detects its shape, previews the parsed channels, and lets you
@@ -208,16 +213,17 @@ re-export to any supported format:
 
 **Reads:** Shure `.shw` / `.cws` (native WWB XML), Sennheiser `.wsm` project files, WSM HTML
 "Coordination Report", WSM Frequencies/Bands CSV, WWB Coordination Report CSV, a bare frequency
-list, or any other CSV via a column-mapping dialog.
+list, or any other CSV via a column-mapping dialog — which appears even when none of the
+headers could be guessed, so an unfamiliar spreadsheet is a mapping away rather than a dead end.
 
 **Writes:** WWB frequency list (`.txt`, the safe documented import format), WWB inventory CSV,
 WSM Frequencies/Bands CSV, a generic CSV, or an experimental WWB7 `.shw` show file.
 
 ### Ofcom PMSE licence (PDF)
 
-Upload an Ofcom PMSE licence schedule PDF to generate a WWB frequency list (`.txt`), a reference
-sheet (`.csv`) mapping frequencies to suggested names and coordination groups, and an experimental
-`.shw` show file.
+Drop an Ofcom PMSE licence schedule PDF into the same zone to generate a WWB frequency list
+(`.txt`), a reference sheet (`.csv`) mapping frequencies to suggested names and coordination
+groups, and an experimental `.shw` show file.
 
 ![RFutils PMSE tab: a licence schedule PDF parsed into licence metadata, download buttons, and an assignment table](docs/screenshots/convert-pmse.png)
 
