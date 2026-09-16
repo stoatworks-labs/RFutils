@@ -1,6 +1,6 @@
 {
   "name": "rfutils",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "description": "Unified browser-based RF coordination + wireless-mic monitoring suite: WSM/WWB file exchange, Ofcom PMSE licence import, and live receiver monitoring in one package.",
   "workspaces": [
