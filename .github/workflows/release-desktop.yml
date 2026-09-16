@@ -3,9 +3,10 @@ name: release-desktop
 # Builds the RFutils desktop app for every platform and attaches the installers
 # to the release.
 #
-# release.yml already ships the portable Node bundle and release-macos.yml an
-# unsigned/notarised macOS .dmg — but nothing produced a Windows or Linux
-# desktop build, so the desktop app was macOS-only. This closes that.
+# release.yml ships the portable Node bundle; this workflow is the only
+# source of the desktop app — one universal macOS .app (as .dmg and .pkg),
+# Windows and Linux installers. The older release-macos.yml, an arm64-only
+# macOS build of the same launcher, was retired once this went universal.
 #
 # Tauri cannot cross-compile its bundles, and the launcher embeds a Node runtime
 # plus native prebuilds matched to the target (launcher/scripts/prepare.sh takes
