@@ -15,6 +15,7 @@ const ui = {
   card: el("server-card"),
   state: el("state"),
   url: el("url"),
+  cfields: el("custom-fields"),
   iface: el("iface"),
   port: el("port"),
   toggle: el("toggle"),
@@ -27,6 +28,61 @@ const ui = {
 
 let running = false;
 let pollTimer = null;
+// key -> the rendered <input>/<select> for each custom field ([[field]] in the config)
+const fieldInputs = {};
+
+// Render the app's custom fields (e.g. a switcher IP, a model selector) above
+// the interface/port controls. Each field's value is substituted into the
+// server's launch args as {key}.
+function renderFields(specs, values) {
+  ui.cfields.innerHTML = "";
+  for (const k of Object.keys(fieldInputs)) delete fieldInputs[k];
+  for (const f of specs || []) {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const label = document.createElement("label");
+    label.setAttribute("for", `f-${f.key}`);
+    label.textContent = f.label;
+    wrap.appendChild(label);
+
+    const cur = values && values[f.key] != null && values[f.key] !== "" ? values[f.key] : f.default || "";
+    let input;
+    if (f.type === "select") {
+      const sw = document.createElement("div");
+      sw.className = "select-wrap";
+      input = document.createElement("select");
+      for (const o of f.options || []) {
+        const value = typeof o === "string" ? o : o.value;
+        const text = typeof o === "string" ? o : o.label;
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = text;
+        if (value === cur) opt.selected = true;
+        input.appendChild(opt);
+      }
+      sw.appendChild(input);
+      wrap.appendChild(sw);
+    } else {
+      input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = f.placeholder || "";
+      input.value = cur;
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      wrap.appendChild(input);
+    }
+    input.id = `f-${f.key}`;
+    input.addEventListener("change", persist);
+    fieldInputs[f.key] = input;
+    ui.cfields.appendChild(wrap);
+  }
+}
+
+function collectFields() {
+  const out = {};
+  for (const [key, input] of Object.entries(fieldInputs)) out[key] = input.value.trim();
+  return out;
+}
 
 function flash(text, isError = false) {
   ui.msg.textContent = text || "";
@@ -51,6 +107,7 @@ function renderStatus(status) {
   ui.toggle.classList.toggle("is-running", status.running);
   ui.iface.disabled = status.running;
   ui.port.disabled = status.running;
+  for (const input of Object.values(fieldInputs)) input.disabled = status.running;
   ui.launch.disabled = !status.running;
 
   if (status.message && status.message !== "Running" && status.message !== "Stopped") {
@@ -84,7 +141,7 @@ async function persist() {
     return;
   }
   try {
-    await invoke("save_settings", { port, interface: ui.iface.value });
+    await invoke("save_settings", { port, interface: ui.iface.value, fields: collectFields() });
     await refreshStatus();
   } catch (e) {
     flash(String(e), true);
@@ -105,6 +162,7 @@ async function init() {
 
     const ifaces = await invoke("list_interfaces");
     const settings = await invoke("get_settings");
+    renderFields(info.fields, settings.fields || {});
     ui.iface.innerHTML = "";
     for (const i of ifaces) {
       const opt = document.createElement("option");
@@ -164,6 +222,25 @@ const MOCK_THEMES = {
     text: "#e8eaf0", muted: "#9aa1b2", dim: "#6b7080",
     accent: "#6ea8fe", "accent-soft": "#172138", good: "#3fae5a",
   },
+  openrcs: {
+    bg: "#0d1015", panel: "#151a21", "panel-2": "#1b222c", border: "#242c37",
+    text: "#e6ebf2", muted: "#8b96a5", dim: "#5b6673",
+    accent: "#22b8cf", "accent-soft": "#12414d", good: "#3fb950",
+  },
+};
+
+// Apps that collect custom fields (mock preview only).
+const MOCK_FIELDS = {
+  openrcs: [
+    { key: "device", label: "Switcher IP", type: "text", placeholder: "192.168.1.42", default: "" },
+    {
+      key: "platform", label: "Model", type: "select", default: "livecore",
+      options: [
+        { value: "livecore", label: "LiveCore (NeXtage / Ascender)" },
+        { value: "midra", label: "Midra (Pulse2 / Eikos2)" },
+      ],
+    },
+  ],
 };
 
 function mockInvoke(cmd, args = {}) {
@@ -176,6 +253,7 @@ function mockInvoke(cmd, args = {}) {
       running: q.get("state") === "running",
       port: Number(q.get("port")) || 8080,
       iface: q.get("iface") || "en0",
+      fields: {},
     });
   const url = () => `http://${s.iface === "lo0" ? "127.0.0.1" : host}:${s.port}/`;
   const status = () => ({
@@ -193,6 +271,7 @@ function mockInvoke(cmd, args = {}) {
         url_template: "http://{host}:{port}/",
         config_dir: "~/Library/Application Support/<launcher-id>",
         theme: MOCK_THEMES[app] || MOCK_THEMES["SRT Router"],
+        fields: MOCK_FIELDS[app] || [],
       });
     case "list_interfaces":
       return Promise.resolve([
@@ -201,9 +280,9 @@ function mockInvoke(cmd, args = {}) {
         { name: "lo0", ip: "127.0.0.1", label: "lo0: 127.0.0.1", loopback: true },
       ]);
     case "get_settings":
-      return Promise.resolve({ port: s.port, interface: s.iface });
+      return Promise.resolve({ port: s.port, interface: s.iface, fields: s.fields });
     case "save_settings":
-      s.port = args.port; s.iface = args.interface; return Promise.resolve();
+      s.port = args.port; s.iface = args.interface; s.fields = args.fields || {}; return Promise.resolve();
     case "get_status":
       return Promise.resolve(status());
     case "start_server":

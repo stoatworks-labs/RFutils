@@ -16,6 +16,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+diag = { path = "crates/diag" }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
@@ -27,6 +28,10 @@ toml = "1.1"
 # Comment-preserving TOML editing so we can patch an app's config file
 # (e.g. srt-router's `[web] bind`) without destroying its formatting.
 toml_edit = "0.25"
+# The in-process static server behind `[serve] mode = "static"`. Synchronous
+# and small: an async stack would be more surface than serving a few hundred
+# kilobytes of built site on a LAN needs. Same crate Burrow serves its demos with.
+tiny_http = "0.12"
 
 # Standalone: keep this out of any parent app cargo workspace.
 [workspace]

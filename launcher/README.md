@@ -53,10 +53,9 @@ npm run tauri build           # -> src-tauri/target/release/bundle/{macos,dmg}/
 ```
 
 The panel/tray shell is a copy of the reusable
-[av-launcher](https://github.com/stoatworks-labs/av-launcher); only
-`src-tauri/launcher.toml` (config + theme), the icon, and the embedded runtime
-are app-specific.
-This copy predates av-launcher's `[serve]` mode and is not a file-for-file
-match of any one commit; the exit-path fix from av-launcher `2c83ad7` (⌘Q
-and Quit from the Dock stop the server too, not just the panel's and tray's
-own Quit) is ported into it.
+[av-launcher](https://github.com/stoatworks-labs/av-launcher) (`src/`,
+`src-tauri/src/`, `src-tauri/crates/`, `Cargo.lock`), taken file for file at
+av-launcher `2c83ad7`; only `src-tauri/launcher.toml` (config + theme),
+`tauri.conf.json`, `Info.plist`, the icon and the embedded runtime are
+app-specific. Refresh the shell by copying those files from a newer
+av-launcher checkout, not by editing them here.

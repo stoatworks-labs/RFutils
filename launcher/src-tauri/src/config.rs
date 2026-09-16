@@ -18,14 +18,134 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone, Deserialize)]
 pub struct LauncherConfig {
     pub app: AppSpec,
+    /// How the chosen host:port reaches a supervised child. Optional since the
+    /// `[serve]` mode arrived — a static site has no child to inject into.
+    /// Every shipped child-process config spells it out.
+    #[serde(default)]
     pub inject: InjectSpec,
+    /// Serve a directory from inside this process instead of supervising a
+    /// child. When present, `[app].command` and `[inject]` are not used.
+    #[serde(default)]
+    pub serve: Option<ServeSpec>,
+    /// Optional extra inputs the panel collects (e.g. a device IP, a model
+    /// selector). Each becomes a `{key}` placeholder usable anywhere `{host}`
+    /// is — args, env values, config-file values. `[[field]]` in TOML.
+    #[serde(default)]
+    pub field: Vec<FieldSpec>,
+}
+
+/// `[serve]` — a static site served in-process. The fleet's browser tools are
+/// static pages, and a tray app for one has nothing to spawn: bundling a
+/// static-server binary beside the site would be the unsigned-helper shape
+/// that macOS quarantines and kills silently (AGENTS §5). So the launcher
+/// serves the directory itself, on the interface and port from the panel.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ServeSpec {
+    /// Only `static` today.
+    pub mode: String,
+    /// The directory to serve. `{resource}` resolves to the bundle's resource
+    /// dir, and a relative path is taken against it, so a shipped config says
+    /// `{resource}/site` and a dev config an absolute `dist/`.
+    pub dir: String,
+    /// A Cloudflare `_headers` file to honour, so the offline copy sends the
+    /// same CSP and cache headers as the hosted one. Defaults to `_headers`
+    /// inside `dir` when that exists; the file itself is never served.
+    #[serde(default)]
+    pub headers: Option<String>,
+    /// The file a directory request serves.
+    #[serde(default = "default_index")]
+    pub index: String,
+    /// `none` for a plain 404, `spa` to serve the index for any unknown path —
+    /// the same two answers as the fleet's `not_found_handling`.
+    #[serde(default = "default_not_found")]
+    pub not_found: String,
+}
+
+fn default_index() -> String {
+    "index.html".into()
+}
+fn default_not_found() -> String {
+    "none".into()
+}
+
+/// Everything the static server needs, resolved from a [`ServeSpec`]: the
+/// directory and the headers file as native paths under the resource dir.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServePaths {
+    pub dir: PathBuf,
+    pub headers: Option<PathBuf>,
+}
+
+/// Resolve a `[serve]` block's paths against the bundle's resource dir.
+pub fn resolve_serve(spec: &ServeSpec, resource_dir: Option<&Path>) -> Result<ServePaths, String> {
+    if spec.mode != "static" {
+        return Err(format!(
+            "unknown serve.mode: {} (only \"static\" exists)",
+            spec.mode
+        ));
+    }
+    let res_str = resource_dir.map(|p| native_path(&p.to_string_lossy()));
+    let res = res_str.as_deref();
+    let empty = BTreeMap::new();
+    let dir = PathBuf::from(resolve_against(
+        &subst(&spec.dir, "", 0, None, res, &empty),
+        resource_dir,
+    ));
+    let headers = match &spec.headers {
+        Some(h) => Some(PathBuf::from(resolve_against(
+            &subst(h, "", 0, None, res, &empty),
+            resource_dir,
+        ))),
+        None => {
+            let inside = dir.join("_headers");
+            inside.is_file().then_some(inside)
+        }
+    };
+    Ok(ServePaths { dir, headers })
+}
+
+/// A custom input rendered in the panel above the interface/port controls.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FieldSpec {
+    /// Placeholder name — `{key}` is substituted with the entered value.
+    pub key: String,
+    /// Label shown in the panel.
+    pub label: String,
+    /// `text` (free entry) or `select` (a fixed list of `options`).
+    #[serde(rename = "type", default = "default_field_type")]
+    pub kind: String,
+    /// Greyed hint for a text field.
+    #[serde(default)]
+    pub placeholder: String,
+    /// Pre-filled value when nothing is remembered.
+    #[serde(default)]
+    pub default: String,
+    /// Choices for a `select` field. A bare string is both value and label;
+    /// `{ value, label }` separates the two (e.g. value `livecore`, label
+    /// `LiveCore`).
+    #[serde(default)]
+    pub options: Vec<FieldOption>,
+}
+
+/// A `select` option — either a plain string or a `{ value, label }` table.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum FieldOption {
+    Simple(String),
+    Labeled { value: String, label: String },
+}
+
+fn default_field_type() -> String {
+    "text".into()
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppSpec {
     /// Display name shown in the panel and tray.
     pub name: String,
-    /// Absolute path to the server binary (or a command on PATH).
+    /// Absolute path to the server binary (or a command on PATH). Unused, and
+    /// may be omitted, when `[serve]` is present.
+    #[serde(default)]
     pub command: String,
     /// Arguments; supports `{host}`, `{port}` and `{config}` placeholders.
     #[serde(default)]
@@ -51,6 +171,7 @@ pub struct AppSpec {
 #[derive(Debug, Clone, Deserialize)]
 pub struct InjectSpec {
     /// `configfile` | `env` | `args`.
+    #[serde(default = "default_inject_mode")]
     pub mode: String,
     #[serde(default)]
     pub configfile: Option<ConfigFileInject>,
@@ -72,6 +193,18 @@ pub struct ConfigFileInject {
 
 fn default_url() -> String {
     "http://{host}:{port}/".into()
+}
+fn default_inject_mode() -> String {
+    "args".into()
+}
+impl Default for InjectSpec {
+    fn default() -> Self {
+        Self {
+            mode: default_inject_mode(),
+            configfile: None,
+            env: BTreeMap::new(),
+        }
+    }
 }
 fn default_port() -> u16 {
     8080
@@ -104,7 +237,14 @@ pub struct Launch {
 /// Substitute `{host}`/`{port}` (plus `{config}`/`{resource}` when provided).
 /// `{resource}` is the bundle's resource dir — lets a shipped config point at
 /// bundled files (e.g. an embedded Node runtime + server) by absolute path.
-fn subst(s: &str, host: &str, port: u16, config: Option<&str>, resource: Option<&str>) -> String {
+fn subst(
+    s: &str,
+    host: &str,
+    port: u16,
+    config: Option<&str>,
+    resource: Option<&str>,
+    fields: &BTreeMap<String, String>,
+) -> String {
     let mut out = s
         .replace("{host}", host)
         .replace("{port}", &port.to_string());
@@ -113,6 +253,9 @@ fn subst(s: &str, host: &str, port: u16, config: Option<&str>, resource: Option<
     }
     if let Some(c) = config {
         out = out.replace("{config}", c);
+    }
+    for (k, v) in fields {
+        out = out.replace(&format!("{{{k}}}"), v);
     }
     out
 }
@@ -296,6 +439,7 @@ pub fn build_launch(
     cfg: &LauncherConfig,
     bind_host: &str,
     port: u16,
+    fields: &BTreeMap<String, String>,
     work_dir: &Path,
     resource_dir: Option<&Path>,
 ) -> Result<Launch, String> {
@@ -317,7 +461,7 @@ pub fn build_launch(
             let mut doc = raw
                 .parse::<toml_edit::DocumentMut>()
                 .map_err(|e| format!("parsing template {template}: {e}"))?;
-            let value = subst(&ci.value, bind_host, port, None, res);
+            let value = subst(&ci.value, bind_host, port, None, res, fields);
             set_dotted(&mut doc, &ci.set_key, &value);
 
             std::fs::create_dir_all(work_dir).map_err(|e| format!("creating work dir: {e}"))?;
@@ -328,10 +472,10 @@ pub fn build_launch(
         }
         "env" => {
             for (k, v) in &cfg.inject.env {
-                envs.push((k.clone(), subst(v, bind_host, port, None, res)));
+                envs.push((k.clone(), subst(v, bind_host, port, None, res, fields)));
             }
         }
-        "args" => { /* host/port already substituted into args below */ }
+        "args" => { /* host/port/fields already substituted into args below */ }
         other => return Err(format!("unknown inject.mode: {other}")),
     }
 
@@ -344,7 +488,7 @@ pub fn build_launch(
         .iter()
         .map(|a| {
             let is_path = a.contains("{resource}") || a.contains("{config}");
-            let out = subst(a, bind_host, port, rendered_config.as_deref(), res);
+            let out = subst(a, bind_host, port, rendered_config.as_deref(), res, fields);
             if is_path {
                 native_path(&out)
             } else {
@@ -356,7 +500,7 @@ pub fn build_launch(
     // Substitute {resource} in the command, then resolve any remaining relative
     // path against the resource dir (covers both `{resource}/node` and `bin/x`).
     let program = with_windows_exe(resolve_against(
-        &subst(&cfg.app.command, bind_host, port, None, res),
+        &subst(&cfg.app.command, bind_host, port, None, res, fields),
         resource_dir,
     ));
 
@@ -383,6 +527,48 @@ mod tests {
 
     fn parse(toml: &str) -> LauncherConfig {
         toml::from_str(toml).expect("valid launcher config")
+    }
+
+    /// A `[serve]` config needs no command and no `[inject]`, and its paths
+    /// resolve against the resource dir the way a bundled command does.
+    #[test]
+    fn static_site_config_needs_no_child() {
+        let cfg = parse(
+            r#"
+            [app]
+            name = "Aspect Calc"
+            default_port = 8520
+            [serve]
+            mode = "static"
+            dir = "{resource}/site"
+            not_found = "spa"
+            "#,
+        );
+        assert!(cfg.app.command.is_empty());
+        assert_eq!(cfg.inject.mode, "args");
+        let spec = cfg.serve.as_ref().expect("[serve] parsed");
+        assert_eq!(spec.index, "index.html");
+        assert_eq!(spec.not_found, "spa");
+
+        let tmp = std::env::temp_dir().join("av-launcher-test-serve");
+        std::fs::create_dir_all(tmp.join("site")).unwrap();
+        std::fs::write(tmp.join("site/_headers"), "/*\n  X-Test: 1\n").unwrap();
+        let paths = resolve_serve(spec, Some(&tmp)).unwrap();
+        assert_eq!(
+            paths.dir,
+            PathBuf::from(native_path(&tmp.join("site").to_string_lossy()))
+        );
+        // The headers file is found inside the directory when not named.
+        assert_eq!(paths.headers, Some(paths.dir.join("_headers")));
+
+        // A relative dir resolves against the resource dir too.
+        let cfg = parse("[app]\nname = \"x\"\n[serve]\nmode = \"static\"\ndir = \"site\"\n");
+        let paths = resolve_serve(cfg.serve.as_ref().unwrap(), Some(&tmp)).unwrap();
+        assert!(paths.dir.ends_with("site"));
+
+        // Any other mode is refused rather than served as something else.
+        let cfg = parse("[app]\nname = \"x\"\n[serve]\nmode = \"proxy\"\ndir = \"site\"\n");
+        assert!(resolve_serve(cfg.serve.as_ref().unwrap(), None).is_err());
     }
 
     /// flock: config-file injection into a TOP-LEVEL `bind` key, config passed
@@ -414,7 +600,15 @@ mod tests {
             template.display()
         ));
 
-        let launch = build_launch(&cfg, "10.0.0.5", 9000, &tmp, None).unwrap();
+        let launch = build_launch(
+            &cfg,
+            "10.0.0.5",
+            9000,
+            &std::collections::BTreeMap::new(),
+            &tmp,
+            None,
+        )
+        .unwrap();
         // The single positional arg is the rendered config path.
         assert_eq!(launch.args.len(), 1);
         let rendered = std::fs::read_to_string(&launch.args[0]).unwrap();
@@ -450,7 +644,15 @@ mod tests {
             template.display()
         ));
 
-        let launch = build_launch(&cfg, "0.0.0.0", 8080, &tmp, None).unwrap();
+        let launch = build_launch(
+            &cfg,
+            "0.0.0.0",
+            8080,
+            &std::collections::BTreeMap::new(),
+            &tmp,
+            None,
+        )
+        .unwrap();
         assert_eq!(launch.args[0], "--config");
         let rendered = std::fs::read_to_string(&launch.args[1]).unwrap();
         assert!(
@@ -477,13 +679,56 @@ mod tests {
             "#,
         );
 
-        let launch = build_launch(&cfg, "192.168.1.20", 8420, &tmp, None).unwrap();
+        let launch = build_launch(
+            &cfg,
+            "192.168.1.20",
+            8420,
+            &std::collections::BTreeMap::new(),
+            &tmp,
+            None,
+        )
+        .unwrap();
         assert!(launch
             .envs
             .contains(&("RFUTILS_SERVER_PORT".into(), "8420".into())));
         assert!(launch
             .envs
             .contains(&("RFUTILS_HOST".into(), "192.168.1.20".into())));
+    }
+
+    /// {resource} in command + args resolves to the bundle resource dir
+    /// (how the RFutils bundle points at its embedded Node + server).
+    #[test]
+    fn resource_placeholder_in_command_and_args() {
+        let res = std::env::temp_dir().join("av-launcher-test-resph");
+        let work = std::env::temp_dir().join("av-launcher-test-resph-work");
+        let cfg = parse(
+            r#"
+            [app]
+            name = "RFutils"
+            command = "{resource}/node"
+            args = ["{resource}/app/server.mjs"]
+            [inject]
+            mode = "env"
+            [inject.env]
+            PORT = "{port}"
+            "#,
+        );
+        let launch = build_launch(
+            &cfg,
+            "0.0.0.0",
+            8420,
+            &std::collections::BTreeMap::new(),
+            &work,
+            Some(&res),
+        )
+        .unwrap();
+        assert_eq!(launch.program, format!("{}/node", res.to_string_lossy()));
+        assert_eq!(
+            launch.args,
+            vec![format!("{}/app/server.mjs", res.to_string_lossy())]
+        );
+        assert!(launch.envs.contains(&("PORT".into(), "8420".into())));
     }
 
     /// args mode: {host}/{port} substituted directly into argv.
@@ -500,8 +745,55 @@ mod tests {
             mode = "args"
             "#,
         );
-        let launch = build_launch(&cfg, "127.0.0.1", 7000, &tmp, None).unwrap();
+        let launch = build_launch(
+            &cfg,
+            "127.0.0.1",
+            7000,
+            &std::collections::BTreeMap::new(),
+            &tmp,
+            None,
+        )
+        .unwrap();
         assert_eq!(launch.args, vec!["--host", "127.0.0.1", "--port", "7000"]);
+    }
+
+    /// Custom [[field]] values substitute as {key} in args (openrcs' switcher IP
+    /// and model reach the server as {device}/{platform}).
+    #[test]
+    fn custom_fields_in_args() {
+        let tmp = std::env::temp_dir().join("av-launcher-test-fields");
+        let cfg = parse(
+            r#"
+            [app]
+            name = "openrcs"
+            command = "openrcs-server"
+            args = ["--device", "{device}:10500", "--platform", "{platform}", "--listen", "{host}:{port}"]
+            [inject]
+            mode = "args"
+            [[field]]
+            key = "device"
+            label = "Switcher IP"
+            [[field]]
+            key = "platform"
+            label = "Model"
+            type = "select"
+            "#,
+        );
+        let mut fields = std::collections::BTreeMap::new();
+        fields.insert("device".to_string(), "192.168.1.42".to_string());
+        fields.insert("platform".to_string(), "livecore".to_string());
+        let launch = build_launch(&cfg, "0.0.0.0", 8730, &fields, &tmp, None).unwrap();
+        assert_eq!(
+            launch.args,
+            vec![
+                "--device",
+                "192.168.1.42:10500",
+                "--platform",
+                "livecore",
+                "--listen",
+                "0.0.0.0:8730"
+            ]
+        );
     }
 
     /// Shipped bundle: a relative `command` + `template` resolve against the
@@ -527,7 +819,15 @@ mod tests {
             value = "{host}:{port}"
             "#,
         );
-        let launch = build_launch(&cfg, "0.0.0.0", 8080, &work, Some(&res)).unwrap();
+        let launch = build_launch(
+            &cfg,
+            "0.0.0.0",
+            8080,
+            &std::collections::BTreeMap::new(),
+            &work,
+            Some(&res),
+        )
+        .unwrap();
         assert_eq!(launch.program, res.join("flock").to_string_lossy());
         assert_eq!(launch.cwd, Some(work.clone()));
         let rendered = std::fs::read_to_string(&launch.args[0]).unwrap();

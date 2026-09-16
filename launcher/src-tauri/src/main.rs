@@ -2,5 +2,29 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    // Before anything that can fail, so a failure during startup is logged and
+    // lands in a crash report like any other. A tray app has no console for an
+    // error to appear in, which makes this the only record there will be.
+    let _diag = match diag::init(diag::Options::new(
+        "av-launcher",
+        "AV_LAUNCHER",
+        env!("CARGO_PKG_VERSION"),
+    )) {
+        Ok(guard) => Some(guard),
+        // Logging failing is not a reason to refuse to launch anything.
+        Err(e) => {
+            eprintln!("av-launcher: logging unavailable: {e}");
+            None
+        }
+    };
+
+    if std::env::args().any(|a| a == "--collect-diagnostics") {
+        match diag::collect_diagnostics() {
+            Ok(path) => println!("{}", path.display()),
+            Err(e) => eprintln!("could not collect diagnostics: {e}"),
+        }
+        return;
+    }
+
     av_launcher_lib::run()
 }
