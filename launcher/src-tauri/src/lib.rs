@@ -18,6 +18,19 @@ struct AppState {
     child: Mutex<Option<Child>>,
 }
 
+impl AppState {
+    /// Kill the child, if one is running. Idempotent: the second caller finds
+    /// nothing to do.
+    fn shutdown(&self) {
+        if let Ok(mut guard) = self.child.lock() {
+            if let Some(mut child) = guard.take() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+        }
+    }
+}
+
 /// Persisted user choices (port + interface), stored next to the launcher's
 /// config in the OS app-config directory.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -209,12 +222,7 @@ fn start_server(app: AppHandle, state: State<AppState>) -> Result<Status, String
 
 #[tauri::command]
 fn stop_server(app: AppHandle, state: State<AppState>) -> Result<Status, String> {
-    let mut guard = state.child.lock().map_err(|e| e.to_string())?;
-    if let Some(mut child) = guard.take() {
-        let _ = child.kill();
-        let _ = child.wait();
-    }
-    drop(guard);
+    state.shutdown();
     status_from(&app, false, "Stopped".into())
 }
 
@@ -227,11 +235,7 @@ fn open_gui(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn quit_app(app: AppHandle, state: State<AppState>) {
-    if let Ok(mut guard) = state.child.lock() {
-        if let Some(mut child) = guard.take() {
-            let _ = child.kill();
-        }
-    }
+    state.shutdown();
     app.exit(0);
 }
 
@@ -320,11 +324,7 @@ pub fn run() {
                     "show" => show_main(app),
                     "quit" => {
                         if let Some(state) = app.try_state::<AppState>() {
-                            if let Ok(mut guard) = state.child.lock() {
-                                if let Some(mut child) = guard.take() {
-                                    let _ = child.kill();
-                                }
-                            }
+                            state.shutdown();
                         }
                         app.exit(0);
                     }
@@ -351,6 +351,19 @@ pub fn run() {
                 api.prevent_close();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        // Every way out passes through here: ⌘Q, Quit from the Dock, and the
+        // exit() our own Quit items call after stopping the server themselves.
+        // Without this, ⌘Q exited the shell and left the child listening —
+        // orphaned, with no tray left to stop it from, and holding the port
+        // against the next Start. shutdown() is idempotent, so the paths that
+        // already stopped the server cost nothing here.
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit = event {
+                if let Some(state) = app.try_state::<AppState>() {
+                    state.shutdown();
+                }
+            }
+        });
 }
