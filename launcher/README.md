@@ -55,7 +55,7 @@ npm run tauri build           # -> src-tauri/target/release/bundle/{macos,dmg}/
 The panel/tray shell is a copy of the reusable
 [av-launcher](https://github.com/stoatworks-labs/av-launcher) (`src/`,
 `src-tauri/src/`, `src-tauri/crates/`, `Cargo.lock`), taken file for file at
-av-launcher `2c83ad7`; only `src-tauri/launcher.toml` (config + theme),
+av-launcher `21bc307`; only `src-tauri/launcher.toml` (config + theme),
 `tauri.conf.json`, `Info.plist`, the icon and the embedded runtime are
 app-specific. Refresh the shell by copying those files from a newer
 av-launcher checkout, not by editing them here.

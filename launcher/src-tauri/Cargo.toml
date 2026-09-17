@@ -19,6 +19,9 @@ tauri-build = { version = "2", features = [] }
 diag = { path = "crates/diag" }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
+# The failure a start or a dying server produces is logged as well as shown,
+# so it is in the diagnostics bundle after the panel has moved on.
+tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Network interface enumeration for the GUI Interface picker.
@@ -32,6 +35,11 @@ toml_edit = "0.25"
 # and small: an async stack would be more surface than serving a few hundred
 # kilobytes of built site on a LAN needs. Same crate Burrow serves its demos with.
 tiny_http = "0.12"
+
+[dev-dependencies]
+# The command layer (start/stop/status) is exercised against Tauri's mock
+# runtime — the `commands` tests in lib.rs — which is what this feature adds.
+tauri = { version = "2", features = ["test"] }
 
 # Standalone: keep this out of any parent app cargo workspace.
 [workspace]

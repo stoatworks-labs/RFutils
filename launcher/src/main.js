@@ -24,6 +24,7 @@ const ui = {
   quit: el("quit"),
   gear: el("gear"),
   msg: el("msg"),
+  detail: el("detail"),
 };
 
 let running = false;
@@ -89,6 +90,34 @@ function flash(text, isError = false) {
   ui.msg.classList.toggle("error", isError);
 }
 
+// The server's last output, under a failure message. Hidden when there is none.
+function showDetail(text) {
+  ui.detail.textContent = text || "";
+  ui.detail.hidden = !text;
+}
+
+/** The window's height at first render — what the panel shrinks back to. */
+let baseHeight = 0;
+/** The height last asked for, so a platform that ignores the request is asked once. */
+let lastFit = 0;
+
+// Grow the window to show a failure's output, and shrink back when it clears.
+// The window is fixed-size for the operator, and a block that scrolls inside
+// it would hide half of what it has to say. Measured from the last visible
+// element rather than scrollHeight, which can never be less than the window.
+function fitWindow() {
+  if (!hasTauri) return;
+  if (!baseHeight) baseHeight = window.innerHeight;
+  const last = ui.detail.hidden ? ui.msg : ui.detail;
+  const pad = parseFloat(getComputedStyle(document.querySelector(".app")).paddingBottom) || 0;
+  const need = Math.ceil(last.getBoundingClientRect().bottom + window.scrollY + pad);
+  const target = Math.max(baseHeight, need);
+  if (target !== lastFit && Math.abs(target - window.innerHeight) > 1) {
+    lastFit = target;
+    invoke("fit_panel", { height: target }).catch(() => {});
+  }
+}
+
 function applyTheme(theme) {
   if (!theme) return;
   for (const [k, v] of Object.entries(theme)) {
@@ -108,13 +137,25 @@ function renderStatus(status) {
   ui.iface.disabled = status.running;
   ui.port.disabled = status.running;
   for (const input of Object.values(fieldInputs)) input.disabled = status.running;
-  ui.launch.disabled = !status.running;
 
-  if (status.message && status.message !== "Running" && status.message !== "Stopped") {
-    flash(status.message);
+  // A failure comes from the backend's state and stays through every poll
+  // until the next Start, Stop or settings change — the message is the status,
+  // not a flash that the next poll wipes. Open stays available when the port
+  // is held by something else: it may well be this app, already running.
+  const failure = status.failure || null;
+  ui.launch.disabled = !(status.running || (failure && failure.port_busy));
+  if (failure) {
+    flash(failure.message, true);
+    showDetail(failure.detail);
   } else {
-    flash("");
+    showDetail("");
+    if (status.message && status.message !== "Running" && status.message !== "Stopped") {
+      flash(status.message);
+    } else {
+      flash("");
+    }
   }
+  fitWindow();
 }
 
 async function refreshStatus() {
@@ -186,9 +227,13 @@ ui.port.addEventListener("change", persist);
 
 ui.toggle.addEventListener("click", async () => {
   ui.toggle.disabled = true;
+  // start_server watches the server's first moments before answering, so the
+  // click is acknowledged here rather than after up to a couple of seconds.
+  if (!running) ui.toggle.textContent = "Starting…";
   try {
     renderStatus(await invoke(running ? "stop_server" : "start_server"));
   } catch (e) {
+    ui.toggle.textContent = running ? "Stop server" : "Start server";
     flash(String(e), true);
   } finally {
     ui.toggle.disabled = false;
@@ -206,6 +251,9 @@ window.addEventListener("DOMContentLoaded", init);
 
 // ---------- Mock backend (browser preview + screenshots only) ----------
 // ?app=flock&port=8080&state=running&host=10.147.17.93 picks the app/state.
+// ?fail=port makes Start find the port held; ?fail=exit makes the server die
+// with output, the way a real one does when its own bind fails. With
+// &state=failed the failure is there from the first status, for screenshots.
 const MOCK_THEMES = {
   "SRT Router": {
     bg: "#14161a", panel: "#1a1d24", "panel-2": "#22262e", border: "#2a2d33",
@@ -254,6 +302,7 @@ function mockInvoke(cmd, args = {}) {
       port: Number(q.get("port")) || 8080,
       iface: q.get("iface") || "en0",
       fields: {},
+      failure: null,
     });
   const url = () => `http://${s.iface === "lo0" ? "127.0.0.1" : host}:${s.port}/`;
   const status = () => ({
@@ -262,7 +311,28 @@ function mockInvoke(cmd, args = {}) {
     host,
     port: s.port,
     message: s.running ? "Running" : "Stopped",
+    failure: s.failure,
   });
+  const failures = {
+    port: () => ({
+      message:
+        `Port ${s.port} is already in use: another program is listening on it — ` +
+        `perhaps ${app} is already running. Stop that, or choose a different port.`,
+      detail: "",
+      port_busy: true,
+    }),
+    exit: () => ({
+      message: `The ${app} server exited right after starting (exit code 1). Its last output is below.`,
+      detail:
+        `2026-09-17T18:04:11Z  INFO ${app.toLowerCase()}: starting\n` +
+        `2026-09-17T18:04:11Z ERROR ${app.toLowerCase()}: could not bind 0.0.0.0:${s.port}: ` +
+        `Address already in use (os error 48)`,
+      port_busy: false,
+    }),
+  };
+  if (q.get("state") === "failed" && s.failure === null && failures[q.get("fail")]) {
+    s.failure = failures[q.get("fail")]();
+  }
   switch (cmd) {
     case "get_app_info":
       return Promise.resolve({
@@ -282,13 +352,18 @@ function mockInvoke(cmd, args = {}) {
     case "get_settings":
       return Promise.resolve({ port: s.port, interface: s.iface, fields: s.fields });
     case "save_settings":
-      s.port = args.port; s.iface = args.interface; s.fields = args.fields || {}; return Promise.resolve();
+      s.port = args.port; s.iface = args.interface; s.fields = args.fields || {}; s.failure = null;
+      return Promise.resolve();
     case "get_status":
       return Promise.resolve(status());
-    case "start_server":
-      s.running = true; return Promise.resolve(status());
+    case "start_server": {
+      const fail = failures[q.get("fail")];
+      s.failure = fail ? fail() : null;
+      s.running = !s.failure;
+      return Promise.resolve(status());
+    }
     case "stop_server":
-      s.running = false; return Promise.resolve(status());
+      s.running = false; s.failure = null; return Promise.resolve(status());
     default:
       return Promise.resolve();
   }

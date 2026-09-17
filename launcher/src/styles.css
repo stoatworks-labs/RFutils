@@ -203,7 +203,31 @@ input:disabled { opacity: 0.55; }
 .msg {
   min-height: 16px;
   font-size: 12px;
+  line-height: 1.4;
   text-align: center;
   color: var(--muted);
 }
 .msg.error { color: #e08080; }
+
+/* The server's last lines, under a failure. Selectable, so the operator can
+   copy them into a bug report; scrolls rather than pushing the panel out of
+   its fixed window. */
+.detail {
+  margin: -4px 0 0;
+  max-height: 96px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.detail[hidden] { display: none; }
