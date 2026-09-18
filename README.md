@@ -51,15 +51,15 @@ deployment.
 
 ## Download
 
-**[v0.4.4](https://github.com/stoatworks-labs/RFutils/releases/tag/v0.4.4)** — prebuilt for macOS, Windows and Linux. Pick your platform:
+**[v0.4.5](https://github.com/stoatworks-labs/RFutils/releases/tag/v0.4.5)** — prebuilt for macOS, Windows and Linux. Pick your platform:
 
 <details>
 <summary><b>macOS</b> — Universal (Apple Silicon + Intel)</summary>
 
 | Build | Download | Size |
 | --- | --- | --- |
-| Universal (Apple Silicon + Intel) · .dmg disk image | [`rfutils-0.4.4-macos-universal.dmg`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.4/rfutils-0.4.4-macos-universal.dmg) | 83 MB |
-| Universal (Apple Silicon + Intel) · .pkg installer | [`rfutils-0.4.4-macos-universal.pkg`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.4/rfutils-0.4.4-macos-universal.pkg) | 84 MB |
+| Universal (Apple Silicon + Intel) · .dmg disk image | [`rfutils-0.4.5-macos-universal.dmg`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.5/rfutils-0.4.5-macos-universal.dmg) | 83 MB |
+| Universal (Apple Silicon + Intel) · .pkg installer | [`rfutils-0.4.5-macos-universal.pkg`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.5/rfutils-0.4.5-macos-universal.pkg) | 84 MB |
 
 </details>
 
@@ -68,8 +68,8 @@ deployment.
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .exe installer | [`RFutils_0.4.4_x64-setup.exe`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.4/RFutils_0.4.4_x64-setup.exe) | 26 MB |
-| x64 · .msi installer | [`RFutils_0.4.4_x64_en-US.msi`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.4/RFutils_0.4.4_x64_en-US.msi) | 38 MB |
+| x64 · .exe installer | [`RFutils_0.4.5_x64-setup.exe`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.5/RFutils_0.4.5_x64-setup.exe) | 26 MB |
+| x64 · .msi installer | [`RFutils_0.4.5_x64_en-US.msi`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.5/RFutils_0.4.5_x64_en-US.msi) | 38 MB |
 
 </details>
 
@@ -78,14 +78,14 @@ deployment.
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .deb package (Debian/Ubuntu) | [`RFutils_0.4.4_amd64.deb`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.4/RFutils_0.4.4_amd64.deb) | 51 MB |
-| x64 · .rpm package (Fedora/RHEL) | [`RFutils-0.4.4-1.x86_64.rpm`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.4/RFutils-0.4.4-1.x86_64.rpm) | 51 MB |
+| x64 · .deb package (Debian/Ubuntu) | [`RFutils_0.4.5_amd64.deb`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.5/RFutils_0.4.5_amd64.deb) | 51 MB |
+| x64 · .rpm package (Fedora/RHEL) | [`RFutils-0.4.5-1.x86_64.rpm`](https://github.com/stoatworks-labs/RFutils/releases/download/v0.4.5/RFutils-0.4.5-1.x86_64.rpm) | 51 MB |
 
 </details>
 
 Also in this release:
 
-- [`rfutils-node-bundle.tar.gz`](https://github.com/stoatworks-labs/RFutils/releases/latest/download/rfutils-node-bundle.tar.gz) — Node bundle (run it yourself), 516 KB
+- [`rfutils-node-bundle.tar.gz`](https://github.com/stoatworks-labs/RFutils/releases/latest/download/rfutils-node-bundle.tar.gz) — Node bundle (run it yourself), 525 KB
 
 All builds, checksums and release notes: [github.com/stoatworks-labs/RFutils/releases](https://github.com/stoatworks-labs/RFutils/releases).
 
