@@ -135,7 +135,7 @@ describe('subnetHostsFor', () => {
       { family: 'IPv4', address: '127.0.0.1', netmask: '255.0.0.0', internal: true },
       { family: 'IPv6', address: 'fe80::1', netmask: 'ffff:ffff:ffff:ffff::', internal: false },
       // A VPN tunnel: a /32 has no neighbours to sweep.
-      { family: 'IPv4', address: '100.111.187.92', netmask: '255.255.255.255', internal: false },
+      { family: 'IPv4', address: '100.64.0.1', netmask: '255.255.255.255', internal: false },
     ]);
     expect(hosts).toEqual([]);
   });
