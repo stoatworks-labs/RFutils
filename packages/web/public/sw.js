@@ -60,9 +60,20 @@ async function warmBuildAssets() {
     if (!res.ok) return;
     await cache.put('/', res.clone());
     const html = await res.text();
+    // Resolved, not string-matched: an app built with a relative base names
+    // `./assets/x.js` here, and a startsWith on the raw attribute would match
+    // nothing at all and warm nothing, silently.
     const urls = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
-      .map((m) => m[1])
-      .filter((u) => u.startsWith('/assets/'));
+      .map((m) => {
+        try {
+          return new URL(m[1], self.location.origin + '/');
+        } catch {
+          return null;
+        }
+      })
+      .filter((u) => u && u.origin === self.location.origin
+        && u.pathname.startsWith('/assets/'))
+      .map((u) => u.pathname + u.search);
     await Promise.all([...new Set(urls)].map((u) => cache.add(u).catch(() => {})));
   } catch {
     // No network at activate time. Runtime caching picks these up on the
