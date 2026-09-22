@@ -1,0 +1,21 @@
+# Cache rules for the installable build of this tool.
+#
+# No Content-Security-Policy here: this site has never been served under one,
+# and bolting an untested policy on beside a service worker would be two
+# changes wearing one hat. If a CSP is added later it has to name
+# `worker-src 'self'` and `manifest-src 'self'` explicitly -- leaning on
+# default-src is the trap the rest of the fleet fell into.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The worker is the one file that must never be served stale: a cached sw.js
+# is a cached update mechanism, and the app would stop being able to replace
+# itself. Build output it caches is content-hashed and immutable above, and
+# everything else it holds is only a fallback for when there is no network, so
+# nothing is lost by revalidating this one small file every time.
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
