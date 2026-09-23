@@ -36,6 +36,11 @@ toml_edit = "0.25"
 # kilobytes of built site on a LAN needs. Same crate Burrow serves its demos with.
 tiny_http = "0.12"
 
+# kill(2) for SIGTERM on Stop/Quit — std's Child::kill() is SIGKILL, which
+# gives a server no chance to shut down or stop its own children.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 # The command layer (start/stop/status) is exercised against Tauri's mock
 # runtime — the `commands` tests in lib.rs — which is what this feature adds.

@@ -35,13 +35,16 @@ struct AppState {
 }
 
 impl AppState {
-    /// Kill the child or stop the server, whichever is running.
+    /// Stop the child or the static server, whichever is running. Every way
+    /// out — Stop, both Quits, ⌘Q, the Dock — comes through here.
+    ///
+    /// The child is taken out of the lock before it is waited on, so a status
+    /// poll arriving during the grace period is answered (Stopped) rather
+    /// than queued behind it.
     fn shutdown(&self) {
-        if let Ok(mut guard) = self.child.lock() {
-            if let Some(mut sup) = guard.take() {
-                let _ = sup.child.kill();
-                let _ = sup.child.wait();
-            }
+        let sup = self.child.lock().ok().and_then(|mut guard| guard.take());
+        if let Some(mut sup) = sup {
+            stop_child(&mut sup.child, STOP_GRACE);
         }
         if let Ok(mut guard) = self.server.lock() {
             if let Some(server) = guard.take() {
@@ -399,6 +402,53 @@ fn describe_exit(status: ExitStatus) -> String {
         }
     }
     format!("{status}")
+}
+
+/// How long a server has to exit after being asked before it is killed.
+/// Enough to flush a state file and stop its own children (packrat unmounts
+/// rclone mounts in this window); short enough that Quit still feels like
+/// Quit when a server ignores the request.
+const STOP_GRACE: Duration = Duration::from_secs(3);
+
+/// Stop a supervised server: ask it to exit, wait up to `grace`, then kill it.
+/// Returns how it ended, when that could be learned.
+///
+/// std's `Child::kill()` is SIGKILL on Unix, which gives a server no chance
+/// to write its state or stop what it spawned — its own children were
+/// reparented to launchd and kept running, rclone mounts and all. So on Unix
+/// it gets SIGTERM first, the signal every runtime turns into an orderly exit
+/// (Node, Python and tokio servers all handle or default-die on it), and
+/// SIGKILL only if it is still there when the grace period is up.
+///
+/// Windows has no equivalent to send: `GenerateConsoleCtrlEvent` needs a
+/// console the launcher shares with the child, and a `CREATE_NO_WINDOW` child
+/// has one of its own. It keeps `TerminateProcess`, as before.
+fn stop_child(child: &mut Child, grace: Duration) -> Option<ExitStatus> {
+    if let Ok(Some(status)) = child.try_wait() {
+        return Some(status);
+    }
+    #[cfg(unix)]
+    if let Ok(pid) = libc::pid_t::try_from(child.id()) {
+        // SAFETY: kill(2) takes no pointers. The pid is our own unreaped
+        // child, so it cannot have been recycled for another process.
+        if unsafe { libc::kill(pid, libc::SIGTERM) } == 0 {
+            const STEP: Duration = Duration::from_millis(25);
+            let deadline = Instant::now() + grace;
+            loop {
+                match child.try_wait() {
+                    Ok(Some(status)) => return Some(status),
+                    Ok(None) if Instant::now() < deadline => thread::sleep(STEP),
+                    _ => break,
+                }
+            }
+            tracing::warn!(
+                "the server ignored SIGTERM for {} s; killing it",
+                grace.as_secs_f32()
+            );
+        }
+    }
+    let _ = child.kill();
+    child.wait().ok()
 }
 
 /// Persisted user choices (port + interface + any custom field values), stored
@@ -833,9 +883,9 @@ fn start_server<R: Runtime>(app: AppHandle<R>, state: State<AppState>) -> Result
 }
 
 #[tauri::command]
-/// Kill the supervised server, or stop the in-process one. There is no
-/// graceful-shutdown signal for a child, so a server that writes state on
-/// exit gets no chance to.
+/// Stop the supervised server, or the in-process one. On Unix the child is
+/// sent SIGTERM and killed only if it is still running after `STOP_GRACE`
+/// (see [`stop_child`]); on Windows it is terminated outright.
 fn stop_server<R: Runtime>(app: AppHandle<R>, state: State<AppState>) -> Result<Status, String> {
     state.shutdown();
     state.clear_failure();
@@ -852,7 +902,7 @@ fn open_gui<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
 }
 
 #[tauri::command]
-/// Kill the server and exit. Distinct from hide_window(), which leaves it
+/// Stop the server and exit. Distinct from hide_window(), which leaves it
 /// running in the tray — the difference an operator most often gets wrong.
 fn quit_app<R: Runtime>(app: AppHandle<R>, state: State<AppState>) {
     state.shutdown();
@@ -1249,6 +1299,47 @@ mod tests {
         assert!(f.detail.is_empty());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn stop_asks_first_and_a_default_server_dies_of_it() {
+        let mut child = Command::new("sleep").arg("30").spawn().unwrap();
+        let started = Instant::now();
+        let status = stop_child(&mut child, Duration::from_secs(3)).expect("reaped");
+        use std::os::unix::process::ExitStatusExt;
+        assert_eq!(status.signal(), Some(libc::SIGTERM));
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "{:?}",
+            started.elapsed()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn stop_kills_a_server_that_ignores_sigterm_once_the_grace_is_up() {
+        // An ignored disposition survives exec, so sleep ignores TERM too.
+        let mut child = Command::new("sh")
+            .args(["-c", "trap '' TERM; exec sleep 30"])
+            .spawn()
+            .unwrap();
+        thread::sleep(Duration::from_millis(100)); // let the trap be set
+        let grace = Duration::from_millis(400);
+        let started = Instant::now();
+        let status = stop_child(&mut child, grace).expect("reaped");
+        use std::os::unix::process::ExitStatusExt;
+        assert_eq!(status.signal(), Some(libc::SIGKILL));
+        assert!(started.elapsed() >= grace, "{:?}", started.elapsed());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn stop_on_a_server_already_gone_just_reaps_it() {
+        let mut child = Command::new("true").spawn().unwrap();
+        thread::sleep(Duration::from_millis(100));
+        let status = stop_child(&mut child, Duration::from_secs(3)).expect("reaped");
+        assert!(status.success());
+    }
+
     /// The commands themselves, run against Tauri's mock runtime with a real
     /// config, real settings and a real (fake) server process — the layer
     /// between the panel and the process, which nothing exercised before.
@@ -1266,6 +1357,9 @@ mod tests {
         ///   die    print an error (with ANSI colour) and exit 1, like a bind failure
         ///   linger live without listening, until killed
         ///   serve  listen for real, with python's http.server
+        ///   trap   start a child of its own, and on SIGTERM stop it and
+        ///          write `stopped` beside this script, as a server with
+        ///          state to save would
         const FAKE_SERVER: &str = "#!/bin/sh
 case \"$3\" in
   die)
@@ -1278,6 +1372,14 @@ case \"$3\" in
     ;;
   serve)
     exec python3 -m http.server \"$2\" --bind \"$1\"
+    ;;
+  trap)
+    here=${0%/*}
+    trap 'kill $sleeper; echo \"stopped cleanly\" > \"$here/stopped\"; exit 0' TERM
+    sleep 30 &
+    sleeper=$!
+    echo $sleeper > \"$here/child.pid\"
+    wait $sleeper
     ;;
 esac
 ";
@@ -1519,6 +1621,59 @@ esac
                 TcpListener::bind(("0.0.0.0", port)).is_ok(),
                 "port still held"
             );
+        }
+
+        #[test]
+        fn stop_lets_the_server_shut_down_and_stop_its_own_children() {
+            let bench = Bench::new("trap", "trap");
+            bench.use_port(free_port());
+
+            let status = start_server(bench.handle(), bench.state()).unwrap();
+            assert!(status.running, "{:?}", status.failure);
+            // Written once the trap is set. A loaded machine can take longer
+            // than the startup grace to get there, so wait for it.
+            let grandchild = (0..200)
+                .find_map(|_| {
+                    let pid = std::fs::read_to_string(bench.dir.join("child.pid"))
+                        .ok()
+                        .filter(|s| s.ends_with('\n'));
+                    if pid.is_none() {
+                        thread::sleep(Duration::from_millis(25));
+                    }
+                    pid
+                })
+                .expect("the server started its child")
+                .trim()
+                .to_string();
+
+            let started = Instant::now();
+            let stopped = stop_server(bench.handle(), bench.state()).unwrap();
+            assert!(!stopped.running);
+            assert_eq!(stopped.failure, None);
+            assert!(
+                started.elapsed() < STOP_GRACE,
+                "it should exit on the signal, not be killed after the grace: {:?}",
+                started.elapsed()
+            );
+            // SIGKILL would have left no marker, and the child running.
+            assert_eq!(
+                std::fs::read_to_string(bench.dir.join("stopped"))
+                    .expect("the server's TERM handler ran")
+                    .trim(),
+                "stopped cleanly"
+            );
+            let gone = (0..40).any(|_| {
+                let alive = Command::new("kill")
+                    .args(["-0", &grandchild])
+                    .stderr(Stdio::null())
+                    .status()
+                    .is_ok_and(|s| s.success());
+                if alive {
+                    thread::sleep(Duration::from_millis(25));
+                }
+                !alive
+            });
+            assert!(gone, "the server's child {grandchild} outlived it");
         }
     }
 }
