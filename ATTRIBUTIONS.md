@@ -10,6 +10,26 @@ pushed out by `scripts/sync-attributions.py`. Edit it there, not here.
 
 Libraries, SDKs and frameworks the project is built on or bundles.
 
+### Tauri
+
+<https://tauri.app>  
+Licence: MIT or Apache-2.0  
+Copyright: The Tauri Programme within The Commons Conservancy
+
+A Cargo and npm dependency — of the app itself under src-tauri/, or of the desktop launcher under launcher/src-tauri/.
+
+Wraps a web front end in a native desktop app using the platform's own webview rather than a bundled browser, so the binary stays small.
+
+### The Rust crate ecosystem
+
+<https://crates.io>  
+Licence: predominantly MIT or Apache-2.0  
+Copyright: the individual crate authors
+
+Cargo dependencies, resolved and pinned in Cargo.lock.
+
+Async runtimes, protocol codecs, serialisation and GUI toolkits. The exact set and versions for any build are in that repo's Cargo.lock, which is the authoritative list.
+
 ### The npm ecosystem
 
 <https://www.npmjs.com>  
