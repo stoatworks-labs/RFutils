@@ -20,6 +20,16 @@ A Cargo and npm dependency — of the app itself under src-tauri/, or of the des
 
 Wraps a web front end in a native desktop app using the platform's own webview rather than a bundled browser, so the binary stays small.
 
+### React
+
+<https://react.dev>  
+Licence: MIT  
+Copyright: Meta Platforms, Inc. and affiliates
+
+An npm dependency.
+
+The UI layer for the browser tools and the Electron and Tauri front ends.
+
 ### The Rust crate ecosystem
 
 <https://crates.io>  
