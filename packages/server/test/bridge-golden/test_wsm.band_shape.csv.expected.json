@@ -21,7 +21,7 @@
   "outputs": {
     "wwb-frequency-list": "705.000\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nBand 001,705.000,,,2,,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nBand 001;2;705000;0;705000;705000;;\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nBand 001;2;705000;0;705000;705000;2;5\r\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nBand 001,705.000,,,,2,,\r\n"
   }
 }

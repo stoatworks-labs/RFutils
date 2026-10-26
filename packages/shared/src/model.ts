@@ -101,7 +101,7 @@ export const EXPORT_FORMATS: ExportFormatInfo[] = [
     label: 'WSM Frequencies/Bands (.csv)',
     extension: 'csv',
     mimeType: 'text/csv',
-    note: 'Import as a candidate pool, then run WSM coordination.',
+    note: 'Import as a candidate pool, then run WSM coordination. Every frequency comes in at Medium priority.',
   },
   {
     id: 'generic-csv',

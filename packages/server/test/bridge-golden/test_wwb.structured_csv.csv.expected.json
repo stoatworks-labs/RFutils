@@ -33,7 +33,7 @@
   "outputs": {
     "wwb-frequency-list": "470.100\n471.100\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nLead Vocal,470.100,,,,,\r\nHost Mic,471.100,,,,,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nLead Vocal;0;470100;0;470100;470100;;\r\nHost Mic;0;471100;0;471100;471100;;\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nLead Vocal;0;470100;0;470100;470100;2;5\r\nHost Mic;0;471100;0;471100;471100;2;5\r\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nLead Vocal,470.100,,,,,,\r\nHost Mic,471.100,,,,,,\r\n"
   }
 }

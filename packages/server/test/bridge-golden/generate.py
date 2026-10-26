@@ -16,7 +16,9 @@ files and the sample documents inlined in its tests — plus a few small
 synthetic files written here to pin the two known parity edges (round-half-
 even, and "G: 01 Ch: 05"). Never its gitignored sample_data/real/.
 
-Generated from wsm-wwb-bridge 0544608 (v1.1.2) with Python 3.14.
+Generated from wsm-wwb-bridge 0544608 (v1.1.2) with Python 3.14. The wsm-csv
+outputs were edited by hand afterwards, on purpose; bridgeGolden.test.ts says
+how and why, and a regenerate has to put that back.
 """
 import importlib
 import json

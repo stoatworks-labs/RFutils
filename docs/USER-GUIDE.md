@@ -74,7 +74,7 @@ from a network problem.
 
 | You used | Now use | What changes |
 |---|---|---|
-| **wsm-wwb-bridge** | **Convert** | Nothing you need to do. The same formats in and out, the same column-mapping step for an unfamiliar CSV, and the same output byte for byte — RFutils is tested against the bridge's own results. It also runs in the hosted page, with no install. |
+| **wsm-wwb-bridge** | **Convert** | Nothing you need to do. The same formats in and out, the same column-mapping step for an unfamiliar CSV, and the same output byte for byte — RFutils is tested against the bridge's own results. The exception is the WSM CSV, which WSM 4.9.0 wouldn't import from the bridge: RFutils fills in the priority and squelch level the way WSM's own export does. It also runs in the hosted page, with no install. |
 | **MicWizard** | **Monitor** | It runs in your browser: open it on the same machine as `http://localhost:8420`. Your Companion setup moves (below), and USB-input mappings need setting once more. |
 
 ### Moving your Companion setup from MicWizard

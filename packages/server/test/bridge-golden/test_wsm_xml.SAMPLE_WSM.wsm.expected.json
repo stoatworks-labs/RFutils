@@ -21,7 +21,7 @@
   "outputs": {
     "wwb-frequency-list": "470.800\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nEW-DX 1,470.800,,,EW-DX EM2/EM4 (LD off),Sennheiser,\"TX: EW-DX SKM, squelch -87 dBm\"\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nEW-DX 1;EW-DX EM2/EM4 (LD off);470800;0;470800;470800;;\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nEW-DX 1;0;470800;0;470800;470800;2;5\r\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nEW-DX 1,470.800,,,,EW-DX EM2/EM4 (LD off),Sennheiser,\"TX: EW-DX SKM, squelch -87 dBm\"\r\n"
   }
 }
