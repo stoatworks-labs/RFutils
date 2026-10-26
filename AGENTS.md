@@ -123,21 +123,26 @@ domain — so the static build targets a root base path, not a `/RFutils/` subdi
 
 `src/buildMode.ts` exports the `staticBuild` flag, and it lives alone in that file on purpose: it
 has to be a bare compile-time constant so Vite can eliminate the `if (staticBuild)` branches in
-`api.ts` — and with them the dynamic `import('./localApi.js')` — from the server build. Import
-`staticBuild` from `buildMode.js`, never from `localApi.js`, or the server bundle grows a pdfjs
-dependency it never uses.
+`api.ts` and `App.tsx` from the server build.
 
-**That elimination is load-bearing and it is version-sensitive — check it after any Vite
-upgrade.** The repo was pinned to Vite 6 until Dependabot's PR #12 (a5bcb51, 2026-08-11) took
-Vite 8 as a plain version bump; `overrides` in the root package.json now forces `^8.1.5`
-across the tree, because vitest resolves a Vite of its own and npm otherwise pins it back. On
-Vite 8 the branch is *not* eliminated: `import('./localApi.js')` survives and takes pdfjs with
-it, and the server build goes from one 221 kB chunk (236 K total) to eight chunks including a
-374 kB pdfjs one (792 K total) — 3.4× bigger, all of it dead code. Presumably rolldown folds
-the `define`-substituted constant differently. See PR #12; taking Vite 8 needs the static/server
-split expressed some other way, not just a version bump.
+**Keeping localApi, and pdfjs with it, out of the server build does not rest on that
+elimination.** The only `import('./localApi.js')` is in `src/loadLocalApi.ts`, and the server
+build swaps that module for `src/loadLocalApi.server.ts`, a stand-in that throws (`resolve.alias`
+in `vite.config.ts`). localApi is never in the server build's module graph at all. Load it only
+through `loadLocalApi.js`; a direct import anywhere else brings it back.
 
-The cheap check after any Vite bump:
+Dead-code elimination alone stopped being enough at Vite 8. Rolldown does drop the dead branches,
+but it still emits a chunk for every dynamic import it found before dropping them. From
+Dependabot's PR #12 (a5bcb51, 2026-08-11, Vite 6 → 8; the root `overrides` has forced `^8.1.5`
+since) until v0.5.2, the server build carried six chunks nothing ever loaded (localApi, pdfjs,
+the parsers, the coordination engine) plus a rolldown runtime chunk the entry fetched to share
+code with them: 975 kB of JS in eight chunks, where the fixed build has one of 315 kB, and 1.1 M
+of `dist` against 468 K.
+
+**`npm run build` now checks this itself:** the `rfutils-single-server-chunk` plugin in
+`vite.config.ts` fails the server build if it emits more than one JS chunk, and names them. So a
+Vite bump, or a new dynamic import, that brings it back fails CI instead of shipping. To look by
+hand:
 
 ```bash
 npm run build && ls packages/web/dist/assets   # one JS chunk + CSS, no pdf-*.js

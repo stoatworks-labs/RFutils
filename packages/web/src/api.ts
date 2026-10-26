@@ -30,9 +30,7 @@ import type {
 import { classifyUpload } from '@rfutils/shared';
 import type { UploadReadResult } from '@rfutils/shared/formats';
 import { staticBuild } from './buildMode.js';
-
-/** The browser-side implementations, loaded only by the static build. */
-const local = () => import('./localApi.js');
+import { loadLocalApi as local } from './loadLocalApi.js';
 
 /** Thrown by the calls that need the local RFutils server (LAN discovery,
  * live monitoring, programming receivers) when running as a hosted page. */
