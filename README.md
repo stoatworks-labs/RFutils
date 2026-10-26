@@ -125,6 +125,10 @@ frequencies over TCP all need sockets a web page can't open. For those, run RFut
   (512.0625 MHz is 512.062, rounded to even, as Python does) and a WWB group/channel written with
   spaces (`G: 01 Ch: 05`). The seven real vendor exports in RFutils' test fixtures come out
   identical in both tools too.
+- **One difference is on purpose: the WSM CSV.** The bridge left its priority and squelch level
+  columns empty, and WSM 4.9.0 won't import the file like that. RFutils writes what WSM's own
+  export writes for a frequency left at its defaults (priority 2, Medium; squelch level 5), and
+  puts 0, a discrete frequency, in the type column where the bridge put a Shure model name.
 - The bridge didn't keep any settings, so there's nothing to migrate.
 
 ### MicWizard → Monitor

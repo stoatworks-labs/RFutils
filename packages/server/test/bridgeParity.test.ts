@@ -9,6 +9,9 @@
  * Left out, because the TS model has no equivalent: the dataclass defaults,
  * len() and iteration checks in test_model.py (a CoordinationList here is a
  * plain { channels } object).
+ *
+ * Changed on purpose: write_wsm_csv's discrete row ends in ";2;5", not ";;",
+ * because WSM 4.9.0 will not import a list with those columns empty (PR #90).
  */
 
 import { readFileSync } from 'node:fs';
@@ -326,7 +329,7 @@ describe('test_wsm: write_wsm_csv', () => {
     expect(lines[0]).toBe(
       'name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel'
     );
-    expect(lines[1]).toBe('Frequency 001;0;510100;0;510100;510100;;');
+    expect(lines[1]).toBe('Frequency 001;0;510100;0;510100;510100;2;5');
   });
 
   it('default type is the verified discrete code', () => {

@@ -33,7 +33,7 @@
   "outputs": {
     "wwb-frequency-list": "471.950\n475.025\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nShure,471.950,,,ADPSM/Narrowband,Shure,\r\nShure,475.025,1,2,AD/Standard,Shure,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nShure;ADPSM/Narrowband;471950;0;471950;471950;;\r\nShure;AD/Standard;475025;0;475025;475025;;\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nShure;0;471950;0;471950;471950;2;5\r\nShure;0;475025;0;475025;475025;2;5\r\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nShure,471.950,Default,,,ADPSM/Narrowband,Shure,\r\nShure,475.025,Default,1,2,AD/Standard,Shure,\r\n"
   }
 }

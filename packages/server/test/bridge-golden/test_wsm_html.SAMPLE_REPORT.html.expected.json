@@ -33,7 +33,7 @@
   "outputs": {
     "wwb-frequency-list": "470.500\n556.600\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nEM3732,470.500,,,EM 3731/3732,Sennheiser,\"TX: SK5212/SKM5200, squelch 0 µV\"\r\nSR2000 I,556.600,,,SR 2000/2050-IEM,Sennheiser,\"TX: EK 2000-IEM, squelch -1 dB\"\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nEM3732;EM 3731/3732;470500;0;470500;470500;;\r\nSR2000 I;SR 2000/2050-IEM;556600;0;556600;556600;;\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nEM3732;0;470500;0;470500;470500;2;5\r\nSR2000 I;0;556600;0;556600;556600;2;5\r\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nEM3732,470.500,FM Mics,,,EM 3731/3732,Sennheiser,\"TX: SK5212/SKM5200, squelch 0 µV\"\r\nSR2000 I,556.600,IEM Systems,,,SR 2000/2050-IEM,Sennheiser,\"TX: EK 2000-IEM, squelch -1 dB\"\r\n"
   }
 }

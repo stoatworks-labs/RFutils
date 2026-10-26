@@ -58,6 +58,53 @@ describe('re-export round-trips', () => {
   });
 });
 
+// WSM 4.9.0 refused RFutils' WSM CSV while priority and squelchlevel were empty (PR #90).
+describe('WSM CSV export carries what WSM itself writes', () => {
+  it("writes WSM's own row for a discrete frequency left at its defaults", () => {
+    const out = writeFormat(
+      { channels: [{ name: 'Frequency 001', frequencyMhz: 510.1 }], sourceFormat: 'test' },
+      'wsm-csv'
+    );
+    // Byte for byte apart from the line ending: WSM writes LF, the bridge wrote CRLF.
+    expect(out.split('\r\n')).toEqual(read('wsm_discrete_frequency.csv').split('\n'));
+  });
+
+  it('writes a converted WWB report as discrete frequencies at priority 2, squelch level 5', () => {
+    const { list } = readText(read('wwb_coordination_report.csv'));
+    const lines = writeFormat(list, 'wsm-csv').split('\r\n').slice(1, -1);
+    expect(lines).toHaveLength(291);
+    for (const line of lines) {
+      // type 0, not the WWB model name; tolerance 0; min == max == frequency
+      expect(line).toMatch(/^.*;0;(\d+);0;\1;\1;2;5$/);
+    }
+  });
+
+  it('round-trips through the WSM reader', () => {
+    const { list } = readText(read('wwb_coordination_report.csv'));
+    const back = readText(writeFormat(list, 'wsm-csv'));
+    expect(back.format).toBe('wsm');
+    expect(back.list.channels.map((c) => c.name)).toEqual(list.channels.map((c) => c.name));
+    back.list.channels.forEach((c, i) =>
+      expect(c.frequencyMhz).toBeCloseTo(list.channels[i]!.frequencyMhz, 3)
+    );
+  });
+
+  it("keeps a type code read from WSM's own CSV", () => {
+    const { list } = readText(read('wsm_frequencies_bands.csv'));
+    expect(writeFormat(list, 'wsm-csv')).toContain('\r\nBand 001;2;705000;');
+  });
+
+  it('still reads an older RFutils export with priority and squelchlevel empty', () => {
+    const { format, list } = readText(
+      'name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\n' +
+        'Lead Vocal;ULXD2;606250;0;606250;606250;;\r\n'
+    );
+    expect(format).toBe('wsm');
+    expect(list.channels).toHaveLength(1);
+    expect(list.channels[0]!.frequencyMhz).toBeCloseTo(606.25, 3);
+  });
+});
+
 describe('freqParse', () => {
   it('normalises MHz, kHz, and comma-decimal notations', () => {
     expect(parseFrequencyToMhz('470.100')).toBeCloseTo(470.1, 3);
