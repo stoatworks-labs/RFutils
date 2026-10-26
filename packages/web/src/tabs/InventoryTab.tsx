@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import type { InventoryItem, InventoryRole, EquipmentProfile } from '@rfutils/shared';
-import { channelsNeeded } from '@rfutils/shared';
+import type { InventoryItem, InventoryRole, EquipmentProfile, RfRange } from '@rfutils/shared';
+import { channelsNeeded, findVariant } from '@rfutils/shared';
 import { usePlanStore } from '../planStore.js';
 import { getProfiles } from '../api.js';
 import type { JSX } from 'react';
 
 const ROLES: InventoryRole[] = ['mic', 'iem', 'other'];
+
+function formatRanges(ranges: RfRange[]): string {
+  return ranges.map((r) => `${r.startMhz}-${r.endMhz}`).join(', ');
+}
 
 export function InventoryTab(): JSX.Element {
   const items = usePlanStore((s) => s.items);
@@ -120,13 +124,39 @@ function InventoryRow({
       onChange({ profileId: undefined });
       return;
     }
-    onChange({
+    const patch: Partial<InventoryItem> = {
       profileId: p.id,
       vendor: p.manufacturer,
       model: p.model,
       role: p.category === 'iem' ? 'iem' : p.category === 'mic' ? 'mic' : 'other',
-    });
+    };
+    // Keep a band that is one of the new model's, else make the user pick.
+    if (p.bandVariants?.length) patch.band = findVariant(p.bandVariants, item.band)?.code ?? '';
+    onChange(patch);
   };
+  const variants = profiles.find((p) => p.id === item.profileId)?.bandVariants ?? [];
+  // Coordination matches band codes ignoring case, so show "g56" as G56 too.
+  const picked = findVariant(variants, item.band);
+  const bandCell = variants.length > 0 ? (
+    <select
+      className="cell cell--sm"
+      value={picked?.code ?? item.band}
+      onChange={(e) => onChange({ band: e.target.value })}
+      title="Bands this model is sold in — pick the one you own"
+    >
+      <option value="">— pick the band you own —</option>
+      {item.band && !picked && (
+        <option value={item.band}>{item.band} (as entered)</option>
+      )}
+      {variants.map((v) => (
+        <option key={v.code} value={v.code}>
+          {v.code} · {formatRanges(v.ranges)} MHz
+        </option>
+      ))}
+    </select>
+  ) : (
+    <input className="cell cell--sm" value={item.band} onChange={(e) => onChange({ band: e.target.value })} />
+  );
   return (
     <tr>
       <td>
@@ -148,9 +178,7 @@ function InventoryRow({
       <td>
         <input className="cell cell--sm" value={item.model} onChange={(e) => onChange({ model: e.target.value })} />
       </td>
-      <td>
-        <input className="cell cell--sm" value={item.band} onChange={(e) => onChange({ band: e.target.value })} />
-      </td>
+      <td>{bandCell}</td>
       <td>
         <select className="cell cell--sm" value={item.role} onChange={(e) => onChange({ role: e.target.value as InventoryRole })}>
           {ROLES.map((r) => (

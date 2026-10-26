@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -35,6 +36,27 @@ function pdfWorkerPlugin(): Plugin {
         fileName: 'pdf.worker.mjs',
         source: readFileSync(require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')),
       });
+    },
+  };
+}
+
+/**
+ * Fail the server build if it emits more than one JS chunk. The tabs are
+ * imported directly and localApi is aliased out, so a second chunk means
+ * something heavy came back in — as pdfjs did, silently, when Vite 8 arrived.
+ * Loud on purpose: `ls dist/assets` after a Vite bump is easy to forget.
+ */
+function singleServerChunk(): Plugin {
+  return {
+    name: 'rfutils-single-server-chunk',
+    generateBundle(_options, bundle) {
+      const chunks = Object.values(bundle).filter((f) => f.type === 'chunk');
+      if (chunks.length > 1) {
+        throw new Error(
+          `the server build should be one JS chunk, got ${chunks.length}: ` +
+            chunks.map((c) => c.fileName).join(', ')
+        );
+      }
     },
   };
 }
@@ -76,7 +98,23 @@ export default defineConfig({
   // release is tagged; this is the one that is always right.
   define: { __APP_VERSION__: JSON.stringify(`v${pkg.version}`) },
   base,
-  plugins: [react(), supportFooterVersion(), ...(isStatic ? [pdfWorkerPlugin()] : [])],
+  plugins: [
+    react(),
+    supportFooterVersion(),
+    ...(isStatic ? [pdfWorkerPlugin()] : [singleServerChunk()]),
+  ],
+  resolve: {
+    // The server build gets a stand-in for the module that loads localApi, so
+    // localApi and pdfjs are never in its module graph. See loadLocalApi.ts.
+    alias: isStatic
+      ? []
+      : [
+          {
+            find: /^\.\/loadLocalApi\.js$/,
+            replacement: fileURLToPath(new URL('./src/loadLocalApi.server.ts', import.meta.url)),
+          },
+        ],
+  },
   server: {
     port: Number(process.env.PORT) || 5273,
     strictPort: false,

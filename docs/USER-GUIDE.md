@@ -159,6 +159,12 @@ against.
 
 ![The Inventory tab.](screenshots/inventory.png)
 
+Where RFutils has the maker's band list for a model, **Band** is a list of those bands with their
+frequencies: pick the one printed on your unit. **Coordinate from inventory** on the Allocation tab
+then keeps each channel inside its own band, gaps included. Anything with no band picked, or with a
+band typed in by hand, still gets the band preset most of your gear suggests (470–608 MHz for
+nearly all of it), so check those yourself.
+
 > **Saving inventory replaces the whole list** rather than merging into it. The app always writes
 > the complete set.
 
