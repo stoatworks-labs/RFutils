@@ -82,8 +82,8 @@ export function writeWsmCsv(list: CoordinationList): string {
       '0',
       freqKhz, // min == max == frequency: a zero-width "discrete" range
       freqKhz,
-      '',
-      '',
+      '3',
+      '5',
     ]);
   }
   return writeCsv(rows, DELIMITER);
