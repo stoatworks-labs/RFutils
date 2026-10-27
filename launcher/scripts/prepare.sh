@@ -10,7 +10,7 @@
 # ship inside the .app / Release). Run before `npm run tauri build`.
 set -euo pipefail
 
-NODE_VERSION="v22.23.1"          # official, links only system frameworks
+NODE_VERSION="v22.23.4"          # official, links only system frameworks
 
 # Which Node runtime gets embedded.
 #
