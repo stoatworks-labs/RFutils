@@ -4,7 +4,7 @@
  * This is the TS equivalent of what wsm-wwb-bridge's GUI dispatched to.
  */
 
-import type { CoordinationList, DetectedFormat, ExportFormat } from '../index.js';
+import type { CoordinationList, DetectedFormat, ExportFormat, ExportOptions } from '../index.js';
 import { emptyList } from '../index.js';
 import { detectFormat } from './detect.js';
 import { readWwbXml } from './wwbXml.js';
@@ -103,14 +103,18 @@ function readAs(format: DetectedFormat, text: string, mapping?: FieldMapping): R
   }
 }
 
-export function writeFormat(list: CoordinationList, format: ExportFormat): string {
+export function writeFormat(
+  list: CoordinationList,
+  format: ExportFormat,
+  options: ExportOptions = {}
+): string {
   switch (format) {
     case 'wwb-frequency-list':
       return writeWwbFrequencyList(list);
     case 'wwb-inventory-csv':
       return writeWwbInventoryCsv(list);
     case 'wsm-csv':
-      return writeWsmCsv(list);
+      return writeWsmCsv(list, options.wsmPriority);
     case 'generic-csv':
       return writeGenericCsv(list);
     case 'wwb-shw':

@@ -17,7 +17,8 @@
  * - wsm-csv (PR #90): every row ends in priority 2 and squelchlevel 5, where the
  *   bridge left both empty and WSM 4.9.0 refused the import. The type column
  *   keeps only WSM's own numeric codes; a model or band name ("ULXD2", "G56")
- *   is written as 0, a discrete frequency. See formats/wsm.ts.
+ *   is written as 0, a discrete frequency. Lines end in LF, as in WSM's own
+ *   export, where the bridge wrote CRLF. See formats/wsm.ts.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';

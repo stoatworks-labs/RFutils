@@ -12,25 +12,30 @@
  * carries one of its own numeric type codes.
  *
  * Unlike the bridge, the writer fills priority and squelchlevel: WSM 4.9.0
- * refuses to import the list when they are empty (RFutils PR #90). The values
- * are the ones WSM's own export writes for a discrete frequency left at its
- * defaults (test/fixtures/wsm_discrete_frequency.csv). Sennheiser's WSM 4.9.0
+ * refuses to import the list when they are empty (RFutils PR #90). Left at
+ * Medium, a row is byte for byte what WSM's own export writes for a discrete
+ * frequency at its defaults (test/fixtures/wsm_discrete_frequency.csv), LF
+ * line endings included, where the bridge wrote CRLF. Sennheiser's WSM 4.9.0
  * help ("Setting frequencies/frequency bands", "Exporting frequency lists"):
  * https://sennheiser.com/globalassets/digizuite/51140-en-wsm_software_help_4.9.0_en.pdf
  */
 
-import type { Channel, CoordinationList } from '../index.js';
+import type { Channel, CoordinationList, WsmPriority } from '../index.js';
 import { formatKhz, parseFrequencyToMhz } from './freqParse.js';
 import { parseCsv, writeCsv } from './csvUtil.js';
 
 const DEFAULT_TYPE = '0'; // confirmed: discrete frequency, verified against a real WSM export
-// "Medium", the help's default for a discrete frequency. Its dialog offers
-// High, Medium, Low and Blocked; PR #90 reports 1 = Low and 3 = High.
-const DEFAULT_PRIORITY = '2';
+// The help's dialog offers High, Medium, Low and Blocked, Medium being the
+// default for a discrete frequency. 2 is Medium in WSM's own export; 1 and 3
+// are as PR #90 reports them from WSM 4.9.0.
+const PRIORITY_CODES: Record<WsmPriority, string> = { high: '3', medium: '2', low: '1' };
 // The help calls this column the noise level. Its dialog shows the default as
 // -102 dBm and the export writes 5, so it is presumably dBµV (-102 dBm + 107).
+// It stays at WSM's default: WSM recommends squelch settings to receivers from
+// it, and a number in a unit nobody has confirmed is no basis for that.
 const DEFAULT_SQUELCH_LEVEL = '5';
 const DELIMITER = ';';
+const LINE_END = '\n'; // as WSM's own export
 
 const HEADER = [
   'name',
@@ -95,7 +100,9 @@ function wsmType(deviceType: string | null | undefined): string {
   return deviceType && /^\d+$/.test(deviceType) ? deviceType : DEFAULT_TYPE;
 }
 
-export function writeWsmCsv(list: CoordinationList): string {
+export function writeWsmCsv(list: CoordinationList, priority: WsmPriority = 'medium'): string {
+  const priorityCode = PRIORITY_CODES[priority];
+  if (!priorityCode) throw new Error(`Unknown WSM priority: ${String(priority)}`);
   const rows: (string | number)[][] = [HEADER];
   for (const ch of list.channels) {
     const freqKhz = formatKhz(ch.frequencyMhz);
@@ -106,9 +113,9 @@ export function writeWsmCsv(list: CoordinationList): string {
       '0',
       freqKhz, // min == max == frequency: a zero-width "discrete" range
       freqKhz,
-      DEFAULT_PRIORITY,
+      priorityCode,
       DEFAULT_SQUELCH_LEVEL,
     ]);
   }
-  return writeCsv(rows, DELIMITER);
+  return writeCsv(rows, DELIMITER, LINE_END);
 }

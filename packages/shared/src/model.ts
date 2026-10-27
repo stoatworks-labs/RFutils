@@ -71,6 +71,24 @@ export type ExportFormat =
   | 'generic-csv'
   | 'wwb-shw';
 
+/**
+ * The priority WSM gives a frequency in its coordination. Its fourth level,
+ * Blocked, is for frequencies to stay off, which an exported pool never is.
+ */
+export type WsmPriority = 'high' | 'medium' | 'low';
+
+export const WSM_PRIORITIES: { id: WsmPriority; label: string }[] = [
+  { id: 'high', label: 'High' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'low', label: 'Low' },
+];
+
+/** Choices a writer takes beyond the list itself; each format reads only its own. */
+export interface ExportOptions {
+  /** WSM CSV: the priority on every row. Medium, WSM's default for a discrete frequency, when unset. */
+  wsmPriority?: WsmPriority;
+}
+
 export interface ExportFormatInfo {
   id: ExportFormat;
   label: string;
@@ -101,7 +119,7 @@ export const EXPORT_FORMATS: ExportFormatInfo[] = [
     label: 'WSM Frequencies/Bands (.csv)',
     extension: 'csv',
     mimeType: 'text/csv',
-    note: 'Import as a candidate pool, then run WSM coordination. Every frequency comes in at Medium priority.',
+    note: 'Import as a candidate pool, then run WSM coordination. Every frequency comes in at the priority you pick.',
   },
   {
     id: 'generic-csv',

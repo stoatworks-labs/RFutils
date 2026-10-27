@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type {
   ChannelField,
   ExportFormat,
+  ExportOptions,
   ExportFormatInfo,
   FieldMapping,
   PmseConversion,
@@ -16,6 +17,7 @@ import {
 } from '../api.js';
 import { FileDrop } from '../components/FileDrop.js';
 import { PmseResult } from './PmseResult.js';
+import { ExportOptionsFields } from '../components/ExportOptionsFields.js';
 import type { JSX } from 'react';
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -177,11 +179,12 @@ function CoordinationResult({
 }): JSX.Element {
   const { result, mapping } = loaded;
   const [exportFormat, setExportFormat] = useState<ExportFormat>('wwb-frequency-list');
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({});
 
   const doExport = async (): Promise<void> => {
     try {
       const info = EXPORT_FORMATS.find((x) => x.id === exportFormat)!;
-      const blob = await exportModel(result.list, exportFormat);
+      const blob = await exportModel(result.list, exportFormat, exportOptions);
       download(blob, `rfutils-export.${info.extension}`);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
@@ -238,6 +241,7 @@ function CoordinationResult({
                 ))}
               </select>
             </label>
+            <ExportOptionsFields format={exportFormat} options={exportOptions} onChange={setExportOptions} />
             <button className="btn btn--primary" onClick={doExport} disabled={busy}>
               Download
             </button>

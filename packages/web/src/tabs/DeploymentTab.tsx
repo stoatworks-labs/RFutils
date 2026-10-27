@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { DiscoveredDevice, ExportFormat } from '@rfutils/shared';
+import type { DiscoveredDevice, ExportFormat, ExportOptions } from '@rfutils/shared';
 import { EXPORT_FORMATS } from '@rfutils/shared';
 import { usePlanStore } from '../planStore.js';
 import { getDevices, programFrequencies, exportModel, type ProgramTargetResult } from '../api.js';
+import { ExportOptionsFields } from '../components/ExportOptionsFields.js';
 import type { JSX } from 'react';
 
 function download(text: string, filename: string, mime: string): void {
@@ -49,6 +50,7 @@ export function DeploymentTab(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('wwb-frequency-list');
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({});
 
   const refreshDevices = (): void => {
     getDevices()
@@ -94,7 +96,7 @@ export function DeploymentTab(): JSX.Element {
         sourceFormat: 'deployment',
       };
       const info = EXPORT_FORMATS.find((f) => f.id === exportFormat)!;
-      const blob = await exportModel(list, exportFormat);
+      const blob = await exportModel(list, exportFormat, exportOptions);
       download(await blob.text(), `deployment.${info.extension}`, info.mimeType);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -125,6 +127,7 @@ export function DeploymentTab(): JSX.Element {
                 ))}
               </select>
             </label>
+            <ExportOptionsFields format={exportFormat} options={exportOptions} onChange={setExportOptions} />
             <button className="btn" onClick={doExport}>
               Download
             </button>

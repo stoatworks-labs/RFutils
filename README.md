@@ -127,8 +127,9 @@ frequencies over TCP all need sockets a web page can't open. For those, run RFut
   identical in both tools too.
 - **One difference is on purpose: the WSM CSV.** The bridge left its priority and squelch level
   columns empty, and WSM 4.9.0 won't import the file like that. RFutils writes what WSM's own
-  export writes for a frequency left at its defaults (priority 2, Medium; squelch level 5), and
-  puts 0, a discrete frequency, in the type column where the bridge put a Shure model name.
+  export writes for a frequency left at its defaults (priority 2, Medium; squelch level 5; LF line
+  endings, where the bridge wrote CRLF), and puts 0, a discrete frequency, in the type column where
+  the bridge put a Shure model name. The export bar lets you pick High or Low priority instead.
 - The bridge didn't keep any settings, so there's nothing to migrate.
 
 ### MicWizard → Monitor
@@ -283,7 +284,8 @@ list, or any other CSV through a column-mapping dialog. The dialog appears even 
 guess any of the headers, so an unfamiliar spreadsheet is a mapping away rather than a dead end.
 
 **Writes:** WWB frequency list (`.txt`, the safe documented import format), WWB inventory CSV,
-WSM Frequencies/Bands CSV, a generic CSV, or an experimental WWB7 `.shw` show file.
+WSM Frequencies/Bands CSV (at the priority you pick), a generic CSV, or an experimental WWB7
+`.shw` show file.
 
 ### Ofcom PMSE licence (PDF)
 

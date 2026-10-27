@@ -21,7 +21,7 @@
   "outputs": {
     "wwb-frequency-list": "471.475\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nShure,471.475,,,AD/Standard,Shure,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nShure;0;471475;0;471475;471475;2;5\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\nShure;0;471475;0;471475;471475;2;5\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nShure,471.475,Zone 1,,,AD/Standard,Shure,\r\n"
   }
 }

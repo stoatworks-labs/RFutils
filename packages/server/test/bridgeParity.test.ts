@@ -11,7 +11,8 @@
  * plain { channels } object).
  *
  * Changed on purpose: write_wsm_csv's discrete row ends in ";2;5", not ";;",
- * because WSM 4.9.0 will not import a list with those columns empty (PR #90).
+ * because WSM 4.9.0 will not import a list with those columns empty (PR #90),
+ * and its lines end in LF, as WSM's own export does.
  */
 
 import { readFileSync } from 'node:fs';

@@ -57,7 +57,7 @@
   "outputs": {
     "wwb-frequency-list": "471.950\n475.025\n489.500\n471.475\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nShure,471.950,,,ADPSM/Narrowband (G57),,\r\nShure,475.025,1,2,AD/Standard (G56),,\r\nBackup 489.500,489.500,,,AD/Standard (G56),,\r\nShure,471.475,,,AD/Standard (G56),,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nShure;0;471950;0;471950;471950;2;5\r\nShure;0;475025;0;475025;475025;2;5\r\nBackup 489.500;0;489500;0;489500;489500;2;5\r\nShure;0;471475;0;471475;471475;2;5\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\nShure;0;471950;0;471950;471950;2;5\nShure;0;475025;0;475025;475025;2;5\nBackup 489.500;0;489500;0;489500;489500;2;5\nShure;0;471475;0;471475;471475;2;5\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nShure,471.950,Default,,,ADPSM/Narrowband (G57),,\r\nShure,475.025,Default,1,2,AD/Standard (G56),,\r\nBackup 489.500,489.500,Default,,,AD/Standard (G56),,\r\nShure,471.475,Zone 1,,,AD/Standard (G56),,\r\n"
   }
 }

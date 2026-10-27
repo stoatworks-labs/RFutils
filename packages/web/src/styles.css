@@ -318,6 +318,9 @@ body {
   font-size: 13px;
   min-width: 260px;
 }
+.export-bar select.export-bar__narrow {
+  min-width: 0;
+}
 .export-note {
   font-size: 12px;
   color: var(--dim);

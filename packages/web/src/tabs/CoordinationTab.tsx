@@ -6,6 +6,7 @@ import type {
   AnalysisResult,
   FreqRange,
   ExportFormat,
+  ExportOptions,
   ProfileCatalog,
   Provenance,
 } from '@rfutils/shared';
@@ -18,6 +19,7 @@ import {
   getProfiles,
 } from '../api.js';
 import { usePlanStore } from '../planStore.js';
+import { ExportOptionsFields } from '../components/ExportOptionsFields.js';
 import type { JSX } from 'react';
 
 function formatRanges(ranges: FreqRange[]): string {
@@ -154,6 +156,7 @@ export function CoordinationTab(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('wwb-frequency-list');
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({});
 
   const [catalog, setCatalog] = useState<ProfileCatalog | null>(null);
   const [bandId, setBandId] = useState('');
@@ -287,7 +290,7 @@ export function CoordinationTab(): JSX.Element {
         sourceFormat: 'coordination',
       };
       const info = EXPORT_FORMATS.find((f) => f.id === exportFormat)!;
-      const blob = await exportModel(list, exportFormat);
+      const blob = await exportModel(list, exportFormat, exportOptions);
       download(await blob.text(), `coordination.${info.extension}`, info.mimeType);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -439,6 +442,7 @@ export function CoordinationTab(): JSX.Element {
                 ))}
               </select>
             </label>
+            <ExportOptionsFields format={exportFormat} options={exportOptions} onChange={setExportOptions} />
             <button className="btn" onClick={doExport}>
               Download
             </button>

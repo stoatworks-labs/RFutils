@@ -22,6 +22,7 @@ import type {
   CoordinationRadio,
   CoordinationResult,
   ExportFormat,
+  ExportOptions,
   FieldMapping,
   Inventory,
   InventoryItem,
@@ -66,7 +67,8 @@ export async function convertFileLocal(
 
 export async function exportModelLocal(
   list: CoordinationList,
-  format: ExportFormat
+  format: ExportFormat,
+  options: ExportOptions = {}
 ): Promise<Blob> {
   const info = EXPORT_FORMATS.find((f) => f.id === format);
   if (!info) throw new Error(`Unknown export format: ${format}`);
@@ -82,7 +84,7 @@ export async function exportModelLocal(
     );
   } else {
     const { writeFormat } = await import('@rfutils/shared/formats');
-    content = writeFormat(list, format);
+    content = writeFormat(list, format, options);
   }
   return new Blob([content], { type: info.mimeType });
 }

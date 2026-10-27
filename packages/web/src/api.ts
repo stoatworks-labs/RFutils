@@ -14,6 +14,7 @@ import type {
   CoordinationList,
   CrosspointRequest,
   ExportFormat,
+  ExportOptions,
   ExportFormatInfo,
   FieldMapping,
   PmseConversion,
@@ -75,12 +76,16 @@ export async function convertFile(file: File, mapping?: FieldMapping): Promise<C
   return asJson<ConvertResponse>(await fetch('/api/convert', { method: 'POST', body: form }));
 }
 
-export async function exportModel(list: CoordinationList, format: ExportFormat): Promise<Blob> {
-  if (staticBuild) return (await local()).exportModelLocal(list, format);
+export async function exportModel(
+  list: CoordinationList,
+  format: ExportFormat,
+  options: ExportOptions = {}
+): Promise<Blob> {
+  if (staticBuild) return (await local()).exportModelLocal(list, format, options);
   const res = await fetch('/api/export', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ list, format }),
+    body: JSON.stringify({ list, format, options }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

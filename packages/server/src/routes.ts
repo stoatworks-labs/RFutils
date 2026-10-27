@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import multer from 'multer';
-import type { CoordinationList, ExportFormat, CrosspointRequest } from '@rfutils/shared';
-import { EXPORT_FORMATS, classifyUpload } from '@rfutils/shared';
+import type { CoordinationList, ExportFormat, ExportOptions, CrosspointRequest } from '@rfutils/shared';
+import { EXPORT_FORMATS, WSM_PRIORITIES, classifyUpload } from '@rfutils/shared';
 import { readUpload, writeFormat, detectFormat, type FieldMapping } from '@rfutils/shared/formats';
 import { convertLicence, generateShow } from '@rfutils/shared/pmse';
 import type { MonitorService } from './monitor/index.js';
@@ -118,7 +118,7 @@ export function createApiRouter(monitor: MonitorService): Router {
     res.json({ format });
   });
 
-  /** Export a model to a target format. Body: { list, format }. */
+  /** Export a model to a target format. Body: { list, format, options? }. */
   router.post('/export', (req: Request, res: Response) => {
     const list = req.body?.list as CoordinationList | undefined;
     const format = req.body?.format as ExportFormat | undefined;
@@ -131,6 +131,11 @@ export function createApiRouter(monitor: MonitorService): Router {
       res.status(400).json({ error: `Unknown export format: ${format}` });
       return;
     }
+    const options = (req.body?.options ?? {}) as ExportOptions;
+    if (options.wsmPriority !== undefined && !WSM_PRIORITIES.some((p) => p.id === options.wsmPriority)) {
+      res.status(400).json({ error: `Unknown WSM priority: ${String(options.wsmPriority)}` });
+      return;
+    }
     try {
       let content: string;
       if (format === 'wwb-shw') {
@@ -139,7 +144,7 @@ export function createApiRouter(monitor: MonitorService): Router {
           { showName: 'RFutils Export' }
         );
       } else {
-        content = writeFormat(list, format);
+        content = writeFormat(list, format, options);
       }
       res.setHeader('Content-Type', info.mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="rfutils-export.${info.extension}"`);

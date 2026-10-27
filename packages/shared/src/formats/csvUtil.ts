@@ -91,11 +91,11 @@ function encodeField(value: string, delimiter: string): string {
   return value;
 }
 
-/** Matches Python csv.writer default line terminator (\r\n). */
-export function writeCsv(rows: (string | number)[][], delimiter = ','): string {
+/** Matches Python csv.writer default line terminator (\r\n) unless a format needs another. */
+export function writeCsv(rows: (string | number)[][], delimiter = ',', lineEnd = '\r\n'): string {
   return (
     rows
       .map((row) => row.map((c) => encodeField(String(c), delimiter)).join(delimiter))
-      .join('\r\n') + '\r\n'
+      .join(lineEnd) + lineEnd
   );
 }

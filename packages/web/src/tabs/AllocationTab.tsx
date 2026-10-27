@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CoordinationRadio, ExportFormat } from '@rfutils/shared';
+import type { CoordinationRadio, ExportFormat, ExportOptions } from '@rfutils/shared';
 import {
   channelNames,
   defaultCoordinationParams,
@@ -8,6 +8,7 @@ import {
 } from '@rfutils/shared';
 import { usePlanStore, type Allocation } from '../planStore.js';
 import { coordinateRadioSet, exportModel, getProfiles } from '../api.js';
+import { ExportOptionsFields } from '../components/ExportOptionsFields.js';
 import type { JSX } from 'react';
 
 function download(text: string, filename: string, mime: string): void {
@@ -36,6 +37,7 @@ export function AllocationTab(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('generic-csv');
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({});
 
   useEffect(() => {
     if (!loaded) void loadInventory();
@@ -97,7 +99,7 @@ export function AllocationTab(): JSX.Element {
         sourceFormat: 'allocation',
       };
       const info = EXPORT_FORMATS.find((f) => f.id === exportFormat)!;
-      const blob = await exportModel(list, exportFormat);
+      const blob = await exportModel(list, exportFormat, exportOptions);
       download(await blob.text(), `allocation.${info.extension}`, info.mimeType);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -142,6 +144,7 @@ export function AllocationTab(): JSX.Element {
                 ))}
               </select>
             </label>
+            <ExportOptionsFields format={exportFormat} options={exportOptions} onChange={setExportOptions} />
             <button className="btn" onClick={doExport}>
               Download
             </button>

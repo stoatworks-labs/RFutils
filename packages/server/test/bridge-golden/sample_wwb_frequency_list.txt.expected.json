@@ -57,7 +57,7 @@
   "outputs": {
     "wwb-frequency-list": "606.250\n614.100\n622.375\n630.900\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nCH 1,606.250,,,,,\r\nCH 2,614.100,,,,,\r\nCH 3,622.375,,,,,\r\nCH 4,630.900,,,,,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nCH 1;0;606250;0;606250;606250;2;5\r\nCH 2;0;614100;0;614100;614100;2;5\r\nCH 3;0;622375;0;622375;622375;2;5\r\nCH 4;0;630900;0;630900;630900;2;5\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\nCH 1;0;606250;0;606250;606250;2;5\nCH 2;0;614100;0;614100;614100;2;5\nCH 3;0;622375;0;622375;622375;2;5\nCH 4;0;630900;0;630900;630900;2;5\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nCH 1,606.250,,,,,,\r\nCH 2,614.100,,,,,,\r\nCH 3,622.375,,,,,,\r\nCH 4,630.900,,,,,,\r\n"
   }
 }

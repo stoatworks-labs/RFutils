@@ -74,7 +74,7 @@ from a network problem.
 
 | You used | Now use | What changes |
 |---|---|---|
-| **wsm-wwb-bridge** | **Convert** | Nothing you need to do. The same formats in and out, the same column-mapping step for an unfamiliar CSV, and the same output byte for byte — RFutils is tested against the bridge's own results. The exception is the WSM CSV, which WSM 4.9.0 wouldn't import from the bridge: RFutils fills in the priority and squelch level the way WSM's own export does. It also runs in the hosted page, with no install. |
+| **wsm-wwb-bridge** | **Convert** | Nothing you need to do. The same formats in and out, the same column-mapping step for an unfamiliar CSV, and the same output byte for byte — RFutils is tested against the bridge's own results. The exception is the WSM CSV, which WSM 4.9.0 wouldn't import from the bridge: RFutils fills in the priority and squelch level the way WSM's own export does, and lets you pick the priority. It also runs in the hosted page, with no install. |
 | **MicWizard** | **Monitor** | It runs in your browser: open it on the same machine as `http://localhost:8420`. Your Companion setup moves (below), and USB-input mappings need setting once more. |
 
 ### Moving your Companion setup from MicWizard
@@ -110,7 +110,9 @@ channels once and choose the input again (see [Listening on headphones](#listeni
 3. For a plain CSV, RFutils reads the header and suggests which column is which. **Check the
    suggested mapping**: it's a best guess from the column names. If it couldn't guess anything,
    the table starts empty and fills in as you map the name and frequency columns.
-4. Choose your export format and download.
+4. Choose your export format and download. For a WSM CSV, also pick the priority WSM gives the
+   frequencies in its coordination. Medium is what WSM gives a frequency you add by hand; High
+   suits licensed frequencies you want it to use first.
 5. **Open the result in WWB or WSM and confirm it looks right** before using it.
 
 ![The Convert tab with a coordination file loaded.](screenshots/convert-coordination.png)

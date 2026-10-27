@@ -57,7 +57,7 @@
   "outputs": {
     "wwb-frequency-list": "606.250\n614.100\n622.375\n630.900\n",
     "wwb-inventory-csv": "Name,Frequency,Group,Channel,Type,Manufacturer,Notes\r\nLead Vocal,606.250,1,1,ULXD4Q (G50),,\r\nHost Mic,614.100,1,2,ULXD4Q (G50),,\r\nGuitar IEM,622.375,2,1,PSM1000 (H50),,\r\nDrummer IEM,630.900,2,2,PSM1000 (H50),,\r\n",
-    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\r\nLead Vocal;0;606250;0;606250;606250;2;5\r\nHost Mic;0;614100;0;614100;614100;2;5\r\nGuitar IEM;0;622375;0;622375;622375;2;5\r\nDrummer IEM;0;630900;0;630900;630900;2;5\r\n",
+    "wsm-csv": "name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel\nLead Vocal;0;606250;0;606250;606250;2;5\nHost Mic;0;614100;0;614100;614100;2;5\nGuitar IEM;0;622375;0;622375;622375;2;5\nDrummer IEM;0;630900;0;630900;630900;2;5\n",
     "generic-csv": "Name,Frequency (MHz),Zone,Group,Channel,Type,Manufacturer,Notes\r\nLead Vocal,606.250,Main Stage,1,1,ULXD4Q (G50),,\r\nHost Mic,614.100,Main Stage,1,2,ULXD4Q (G50),,\r\nGuitar IEM,622.375,Monitor World,2,1,PSM1000 (H50),,\r\nDrummer IEM,630.900,Monitor World,2,2,PSM1000 (H50),,\r\n"
   }
 }

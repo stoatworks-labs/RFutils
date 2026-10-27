@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import type { WsmPriority } from '@rfutils/shared';
 import { readText, readUpload, writeFormat } from '@rfutils/shared/formats';
 import { detectFormat } from '@rfutils/shared/formats';
 import { parseFrequencyToMhz, formatKhz, parseWwbGroupChannel } from '@rfutils/shared/formats';
@@ -50,7 +51,7 @@ describe('re-export round-trips', () => {
   it('WSM CSV export uses kHz and the documented header', () => {
     const { list } = readText(read('wsm_report.html'));
     const out = writeFormat(list, 'wsm-csv');
-    expect(out.split('\r\n')[0]).toBe(
+    expect(out.split('\n')[0]).toBe(
       'name;type;frequency;tolerance;minfrequency;maxfrequency;priority;squelchlevel'
     );
     // 470.5 MHz -> 470500 kHz
@@ -65,13 +66,28 @@ describe('WSM CSV export carries what WSM itself writes', () => {
       { channels: [{ name: 'Frequency 001', frequencyMhz: 510.1 }], sourceFormat: 'test' },
       'wsm-csv'
     );
-    // Byte for byte apart from the line ending: WSM writes LF, the bridge wrote CRLF.
-    expect(out.split('\r\n')).toEqual(read('wsm_discrete_frequency.csv').split('\n'));
+    // Byte for byte, LF line endings included (the bridge wrote CRLF).
+    expect(out).toBe(read('wsm_discrete_frequency.csv'));
+  });
+
+  it('writes the priority picked for the export, and refuses one WSM has no code for', () => {
+    const list = { channels: [{ name: 'Lead Vocal', frequencyMhz: 606.25 }], sourceFormat: 'test' };
+    const row = (wsmPriority?: WsmPriority) =>
+      writeFormat(list, 'wsm-csv', { wsmPriority }).split('\n')[1];
+    expect(row()).toBe('Lead Vocal;0;606250;0;606250;606250;2;5');
+    expect(row('medium')).toBe('Lead Vocal;0;606250;0;606250;606250;2;5');
+    expect(row('high')).toBe('Lead Vocal;0;606250;0;606250;606250;3;5');
+    expect(row('low')).toBe('Lead Vocal;0;606250;0;606250;606250;1;5');
+    expect(() => row('blocked' as WsmPriority)).toThrow(/Unknown WSM priority/);
+    // The other writers take no options and ignore them.
+    expect(writeFormat(list, 'generic-csv', { wsmPriority: 'high' })).toBe(
+      writeFormat(list, 'generic-csv')
+    );
   });
 
   it('writes a converted WWB report as discrete frequencies at priority 2, squelch level 5', () => {
     const { list } = readText(read('wwb_coordination_report.csv'));
-    const lines = writeFormat(list, 'wsm-csv').split('\r\n').slice(1, -1);
+    const lines = writeFormat(list, 'wsm-csv').split('\n').slice(1, -1);
     expect(lines).toHaveLength(291);
     for (const line of lines) {
       // type 0, not the WWB model name; tolerance 0; min == max == frequency
@@ -91,7 +107,7 @@ describe('WSM CSV export carries what WSM itself writes', () => {
 
   it("keeps a type code read from WSM's own CSV", () => {
     const { list } = readText(read('wsm_frequencies_bands.csv'));
-    expect(writeFormat(list, 'wsm-csv')).toContain('\r\nBand 001;2;705000;');
+    expect(writeFormat(list, 'wsm-csv')).toContain('\nBand 001;2;705000;');
   });
 
   it('still reads an older RFutils export with priority and squelchlevel empty', () => {
