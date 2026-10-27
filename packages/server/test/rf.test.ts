@@ -138,6 +138,8 @@ describe('sourced RF data', () => {
     const mode = rfDataFor('akg-wms470')!.modes[0]!;
     expect(mode.minSpacingKhz).toBe(400);
     expect(mode.spacing.basis).toBe('derived');
+    // The group chart is a dealer's copy, so it never makes the spacing vendor-doc.
+    expect(mode.spacing.source).toContain('zajaruhaz.hu');
     expect(mode.bandwidth?.basis).toBe('assumed');
     expect(BUILTIN_PLUGINS.find((p) => p.id === 'akg-wms470')?.verified).toBe(false);
   });

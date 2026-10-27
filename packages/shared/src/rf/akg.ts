@@ -4,11 +4,12 @@
  * The WMS470 is analog FM, tuning in 25 kHz steps across a 30.5 MHz switching
  * bandwidth. AKG does not publish a minimum channel spacing; instead the
  * receiver picks carriers from precalculated IM-safe channel groups. The
- * 400 kHz spacing used here is the conservative floor: the large majority of
- * separations in those groups are ≥400 kHz, with 375/350/300 kHz appearing
- * only in the narrow 11.8 MHz bands (III-K, V-D) and the Japan-B groups of
- * V-B. Because it is worked out from the groups rather than stated by AKG, it
- * is `derived`, and the product is not `verified`.
+ * 400 kHz spacing used here is the conservative floor: 120 of the 131 groups
+ * in the WMS 470 group chart keep every carrier ≥400 kHz apart, with
+ * 375/350/300 kHz appearing only in the narrow 11.8 MHz bands (III-K, V-D)
+ * and the Japan-B groups of V-B. Because it is worked out from the groups
+ * rather than stated by AKG, and that chart comes from a dealer's website
+ * rather than AKG's, it is `derived`, and the product is not `verified`.
  *
  * Band codes are the Roman numerals printed on the device, as AKG's frequency
  * chart and service documentation write them. The manual and cutsheet write
@@ -18,7 +19,8 @@
  * variants.
  *
  * Ranges from AKG's WMS470 frequency chart, cutsheet and user manual, and the
- * WMS400/450/470 service documentation, read 2026-10-25.
+ * WMS400/450/470 service documentation, read 2026-10-25. Channel groups from
+ * the dealer-hosted WMS 470 group chart, read 2026-10-27.
  */
 
 import type { BandVariant, Provenance, RfMode } from './types.js';
@@ -31,6 +33,9 @@ const CUTSHEET =
   'AKG WMS 470 cutsheet — https://www.akg.com/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw5b5096e6/pdfs/AKG_WMS470_Cutsheet.pdf';
 const SERVICE_DOC =
   'AKG Service Info WMS400/450/470 — https://www.akg.com/on/demandware.static/-/Sites-masterCatalog_Harman/default/dwd24fcf75/pdfs/AKG_WMS470_WMS450_WMS400_Service_Documentation.pdf';
+/** Third-party: AKG's branding, but hosted by a Hungarian dealer, not published by AKG. */
+const GROUP_CHART =
+  'WMS 470 Frequency Chart 2.0 (channel groups, 2011), dealer-hosted copy — https://zajaruhaz.hu/public/old_pdf/wms470_fre4da567bf4a7fc.pdf';
 
 const doc = (source: string, note?: string): Provenance => ({
   basis: 'vendor-doc',
@@ -66,18 +71,21 @@ export const AKG_WMS470_MODES: RfMode[] = [
     strategy: 'im-search',
     spacing: {
       basis: 'derived',
-      source: CUTSHEET,
-      retrieved: RETRIEVED,
+      source: GROUP_CHART,
+      retrieved: '2026-10-27',
       note:
         'AKG publishes no minimum channel spacing. The receiver "shall select ' +
         'intermodulation-free frequencies automatically from an integrated frequency database ' +
-        'arranged by local frequency allocations" (cutsheet), and this is the smallest ' +
-        'separation those groups use outside the narrow bands. Counted from the groups when ' +
-        'this entry was added (RFutils PR #87): the large majority of separations are ' +
-        '≥400 kHz; 375 kHz in the six Japan-B groups of Band V-B, 350 kHz in III-K 3.C and ' +
-        'V-D 5.C, and 300 kHz in the 11.8 MHz bands III-K (3.D, 3.2) and V-D (5.D). AKG does ' +
-        'not publish the group tables online, so the count has not been checked against a ' +
-        'document. 400 kHz is also the working figure used for Sennheiser G4.',
+        'arranged by local frequency allocations" (AKG cutsheet), and this is the smallest ' +
+        'separation those groups use outside the narrow bands. The groups are in a WMS 470 ' +
+        "frequency chart that carries AKG's logo and document numbers (9100 U 13440 B to " +
+        '13540 C) but is hosted by a Hungarian dealer, not by AKG, so it is a third-party copy; ' +
+        'the contributor who added this entry spot-checked groups against hardware (RFutils ' +
+        '#87, #89). Counted from it on 2026-10-27: 131 groups in 11 bands, 120 of them ' +
+        '≥400 kHz apart throughout; 375 kHz in the six Japan-B groups of Band V-B, 350 kHz in ' +
+        'III-K 3.C and V-D 5.C, and 300 kHz in the 11.8 MHz bands III-K (3.D, 3.2) and V-D ' +
+        '(5.D). It has no groups for Bands II, IV, V, VI, X, M or D. 400 kHz is also the ' +
+        'working figure used for Sennheiser G4.',
     },
     bandwidth: {
       basis: 'assumed',
@@ -135,7 +143,8 @@ const CUTSHEET_BANDS = variants(
       'V-A',
       [[790.1, 819.9]],
       'Band 5-A in the manual and cutsheet. The cutsheet gives 790.1–819.9 MHz and the ' +
-        "manual's specifications 790–821.5 MHz; the narrower range is used.",
+        "manual's specifications 790–821.5 MHz; the narrower range is used. The dealer-hosted " +
+        'group chart also gives 790.0–821.5 MHz, and its group 5.3 uses 820.100 MHz.',
     ],
     ['V-B', [[806.125, 809.75]], 'Band 5-B in the manual and cutsheet.'],
     [
