@@ -35,6 +35,6 @@
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12",
-    "pdfjs-dist": "^6.3.289"
+    "pdfjs-dist": "^6.4.299"
   }
 }
