@@ -150,7 +150,7 @@ the code proves nothing.
 
 ## Releasing
 
-Multi-platform release CI. **Cross-compile macOS x86_64 on `macos-14`, never `macos-13`** —
+Multi-platform release CI. **Cross-compile macOS x86_64 on `macos-15`, never `macos-13`** —
 those Intel runners are retired and the job will simply fail.
 
 RFutils ships as its own desktop app via **av-launcher**, embedding a Node runtime. Note the

@@ -46,11 +46,36 @@ jobs:
           # rust_target is what rustup installs (universal-apple-darwin is a
           # Tauri bundling target, not a rustup one); tauri_target is what
           # `tauri build` is given and what names the output directory.
-          - { name: macos-universal, os: macos-14,       node_platform: darwin-universal, rust_target: 'aarch64-apple-darwin,x86_64-apple-darwin', tauri_target: universal-apple-darwin, bundles: app }
+          - { name: macos-universal, os: macos-15,       node_platform: darwin-universal, rust_target: 'aarch64-apple-darwin,x86_64-apple-darwin', tauri_target: universal-apple-darwin, bundles: app }
           - { name: windows-x86_64, os: windows-latest, node_platform: win-x64,      rust_target: x86_64-pc-windows-msvc, bundles: 'nsis,msi' }
           - { name: linux-x86_64,   os: ubuntu-22.04,   node_platform: linux-x64,    rust_target: x86_64-unknown-linux-gnu, bundles: 'deb,rpm' }
     steps:
+      # A dispatched run builds the tag it names, not the branch it ran from, so
+      # re-running a release on a fixed workflow still builds that release's code.
+      # A tag that is not pushed yet has nothing to check out, and builds the branch.
+      - name: Ref to build
+        id: src
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          ref="${{ github.ref }}"
+          if [ -n "$TAG" ]; then
+            if out=$(gh api "repos/${{ github.repository }}/git/ref/tags/$TAG" 2>&1); then
+              ref="refs/tags/$TAG"
+            else
+              case "$out" in
+                *"HTTP 404"*) echo "tag $TAG is not pushed; building ${{ github.ref_name }}" ;;
+                *) echo "$out" >&2; exit 1 ;;
+              esac
+            fi
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.src.outputs.ref }}
 
       - uses: actions/setup-node@v7
         with:

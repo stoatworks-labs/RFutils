@@ -196,7 +196,7 @@ means experimental.
   runtime**. Note the macOS Gatekeeper trap common to all av-launcher apps: for an unsigned
   `.app` bundling helper binaries, approving the app does *not* unquarantine the payload —
   helpers are SIGKILLed silently.
-- Multi-platform release CI; cross-compile macOS x86_64 on `macos-14`, never `macos-13`.
+- Multi-platform release CI; cross-compile macOS x86_64 on `macos-15`, never `macos-13`.
 - Public repo. "Commit" means commit **and** push.
 
 ### Cutting a release: the version lives in six places
