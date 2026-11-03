@@ -85,6 +85,15 @@ export function App(): JSX.Element {
       <footer className="app__footer">
         AI-assisted build · combines wsm-wwb-bridge, pmse-to-wwb and MicWizard · verify
         experimental exports before a live show.
+        {/* Hosted build only: a local copy has no business pointing at the web tool. */}
+        {staticBuild && (
+          <>
+            {' · '}
+            <a href="https://stoatworks-labs.com/web-tools/rfutils/" target="_blank" rel="noopener">
+              About this tool
+            </a>
+          </>
+        )}
       </footer>
     </div>
   );

@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RFutils</title>
-    <meta name="description" content="A browser-based RF suite for radio mics: Wireless Workbench, WSM and Ofcom PMSE file exchange, plus IM-aware frequency coordination. Nothing is uploaded — the parsers and the coordination engine run on your own machine.">
+    <title>RFutils — Coordination files in, any other format out, frequencies solved</title>
+    <meta name="description" content="Radio-mic file exchange between Wireless Workbench, WSM and Ofcom PMSE licences, plus IM-aware frequency coordination. Free, in the browser, and nothing is uploaded.">
     <link rel="canonical" href="https://rfutils.stoatworks-labs.com/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Stoatworks Labs">
     <meta property="og:locale" content="en_GB">
     <meta property="og:url" content="https://rfutils.stoatworks-labs.com/">
-    <meta property="og:title" content="RFutils">
-    <meta property="og:description" content="A browser-based RF suite for radio mics: Wireless Workbench, WSM and Ofcom PMSE file exchange, plus IM-aware frequency coordination. Nothing is uploaded — the parsers and the coordination engine run on your own machine.">
+    <meta property="og:title" content="RFutils — Coordination files in, any other format out, frequencies solved">
+    <meta property="og:description" content="Radio-mic file exchange between Wireless Workbench, WSM and Ofcom PMSE licences, plus IM-aware frequency coordination. Free, in the browser, and nothing is uploaded.">
     <!-- Card hosted on the main site: it is regenerated in place by the
          website's make_thumbnails.py and keeps its filename, so a copy
          vendored here would go stale without anything saying so. -->
@@ -22,6 +22,39 @@
     <meta property="og:image:alt" content="RFutils">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="https://stoatworks-labs.com/thumbs/rfutils.png">
+    <!-- Same @id as the entry on stoatworks-labs.com/web-tools/rfutils/, so a
+         search engine reads the two as one thing described twice. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "@id": "https://rfutils.stoatworks-labs.com#app",
+        "name": "RFutils",
+        "url": "https://rfutils.stoatworks-labs.com",
+        "description": "Radio-mic file exchange between Wireless Workbench, WSM and Ofcom PMSE licences, plus IM-aware frequency coordination. Free, in the browser, and nothing is uploaded.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any (runs in a web browser)",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP"
+        },
+        "author": {
+          "@id": "https://stoatworks-labs.com/#organization",
+          "@type": "Organization",
+          "name": "Stoatworks Labs",
+          "url": "https://stoatworks-labs.com/"
+        },
+        "publisher": {
+          "@id": "https://stoatworks-labs.com/#organization"
+        },
+        "sameAs": [
+          "https://stoatworks-labs.com/web-tools/rfutils/",
+          "https://github.com/stoatworks-labs/RFutils"
+        ]
+      }
+    </script>
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- iOS ignores the manifest's icons entirely and wants a PNG of its own. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -29,6 +62,18 @@
     <meta name="theme-color" content="#12141a" />
   </head>
   <body>
+    <noscript>
+      <h1>RFutils</h1>
+      <p>An RF suite for radio mics. The conversion and coordination half runs entirely in a browser: drop in a Wireless Workbench or WSM export, or an Ofcom PMSE licence PDF, and get your files back. Nothing is uploaded: the parsers, the .shw generator and the coordination engine all run on your own machine, in the page.</p>
+      <p>In a browser it has Convert, Coordination, Inventory and Allocation. Monitor and Deployment (discovering receivers, decoding AES67 audio and programming frequencies) need sockets a web page can't open, so for those you run RFutils locally.</p>
+      <p>It needs JavaScript to run.</p>
+      <ul>
+        <li><a href="https://stoatworks-labs.com/web-tools/rfutils/">RFutils on Stoatworks Labs</a></li>
+        <li><a href="https://stoatworks-labs.com/software/rfutils/">Project page</a></li>
+        <li><a href="https://stoatworks-labs.com/software/rfutils/guide/">User guide</a></li>
+        <li><a href="https://github.com/stoatworks-labs/RFutils">Source code on GitHub</a></li>
+      </ul>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!--

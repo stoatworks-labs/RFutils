@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rfutils.stoatworks-labs.com/sitemap.xml

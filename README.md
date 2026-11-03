@@ -28,6 +28,10 @@ repositories were archived on 11 October 2026 and stay up with their past releas
 happens here. Moving
 across? See [Coming from MicWizard or wsm-wwb-bridge](#coming-from-micwizard-or-wsm-wwb-bridge).
 
+The [project page](https://stoatworks-labs.com/software/rfutils/) has the downloads, the user guide
+and the video, and the [web tool's page](https://stoatworks-labs.com/web-tools/rfutils/) covers the
+[hosted build](https://rfutils.stoatworks-labs.com) and running it on your own server.
+
 ```mermaid
 flowchart LR
     subgraph Browser["Browser (React / Vite)"]

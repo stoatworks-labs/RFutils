@@ -126,6 +126,10 @@ body {
   font-size: 12px;
 }
 
+.app__footer a {
+  color: inherit;
+}
+
 /* --- generic tab panel --- */
 .tab-panel {
   display: flex;

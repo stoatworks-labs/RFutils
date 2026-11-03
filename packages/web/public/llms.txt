@@ -1,0 +1,17 @@
+# RFutils
+
+> Coordination files in, any other format out, frequencies solved
+
+An RF suite for radio mics. The conversion and coordination half runs entirely in a browser: drop in a Wireless Workbench or WSM export, or an Ofcom PMSE licence PDF, and get your files back. Nothing is uploaded: the parsers, the .shw generator and the coordination engine all run on your own machine, in the page.
+
+In a browser it has Convert, Coordination, Inventory and Allocation. Monitor and Deployment (discovering receivers, decoding AES67 audio and programming frequencies) need sockets a web page can't open, so for those you run RFutils locally: there are prebuilt apps for macOS, Windows and Linux.
+
+It runs in the browser at https://rfutils.stoatworks-labs.com/ and is free to use.
+
+## Links
+
+- [RFutils on Stoatworks Labs](https://stoatworks-labs.com/web-tools/rfutils/): what it is, with links to everything else
+- [Project page](https://stoatworks-labs.com/software/rfutils/)
+- [User guide](https://stoatworks-labs.com/software/rfutils/guide/)
+- [Source code](https://github.com/stoatworks-labs/RFutils)
+- [Self-hosting](https://stoatworks-labs.com/web-tools/self-hosting/): running it on your own server
