@@ -1,0 +1,289 @@
+/*
+ * Stoatworks web-tool theme: the look mymac shipped with, shared by every hosted
+ * browser tool. Vendored from stoatworks-backend/theme by scripts/sync-theme.sh:
+ * edit it there and re-sync, never inside a tool repo.
+ *
+ * Everything sits in the `sw-theme` cascade layer, and any style that isn't in a
+ * layer beats any style that is, whatever the specificity. So a tool's own
+ * stylesheet always wins over this file, and this file only fills in what a
+ * tool leaves unsaid. Load it first all the same (import it before the tool's
+ * own CSS, or link it above it).
+ *
+ * How a tool uses it:
+ *   - Point the tool's own variables at these tokens in its :root, e.g.
+ *     `--bg: var(--sw-paper); --panel: var(--sw-card);`, and drop the tool's own
+ *     hex values and any `color-scheme: dark`. The tool then follows the Mac's
+ *     light/dark setting, as mymac does.
+ *   - Put the tool's header on the navy bar: class `sw-bar` on the header, a
+ *     `sw-brand` name with a `sw-mark` tile in front of it, and the About button
+ *     inside the bar (the bar styles its buttons as outlined light ones).
+ *   - Canvases, video, test patterns and 3D viewports sit on `--sw-stage`, which
+ *     stays dark in both modes, with `--sw-stage-ink` for anything drawn on top.
+ *
+ * Token names avoid `--sw-rule` and `--sw-chip`, which support-footer.js scopes
+ * to its own footer.
+ */
+
+@layer sw-theme {
+  :root {
+    /* Brand navy band: stays navy in both modes. */
+    --sw-navy: #0e2942;
+    --sw-navy-ink: #eaf2fa;
+    --sw-navy-ink-2: #c9d8e6;
+    --sw-navy-line: rgba(255, 255, 255, 0.28);
+    --sw-navy-tint: rgba(255, 255, 255, 0.06);
+    --sw-navy-tint-line: rgba(255, 255, 255, 0.12);
+    --sw-accent-soft: #7fa8ce;
+    /* States that read on the navy bar (a connection dot, a recording light). */
+    --sw-navy-ok: #6fb592;
+    --sw-navy-warn: #d1ad5a;
+    --sw-navy-bad: #e07a70;
+
+    /* Surfaces and text. */
+    --sw-paper: #fafaf8;
+    --sw-card: #ffffff;
+    --sw-tint: #eef3f8;
+    --sw-ink: #16212c;
+    --sw-muted: #5a6875;
+    --sw-faint: #6f7d8a;
+    --sw-line: #dde3e9;
+
+    /* Accent (RAL 5019 Capri blue in light mode) and the text that sits on it. */
+    --sw-accent: #235f92;
+    --sw-on-accent: #fafaf8;
+
+    /* States. */
+    --sw-ok: #2f6b4f;
+    --sw-warn: #8a6a1f;
+    --sw-bad: #a3362d;
+
+    /* Commands and code blocks: navy in light mode, near-black in dark. */
+    --sw-code-bg: #0e2942;
+    --sw-code-ink: #eaf2fa;
+    --sw-code-line: rgba(127, 168, 206, 0.35);
+
+    /* Output surfaces (canvas, video, patterns, 3D): dark in both modes. */
+    --sw-stage: #060e16;
+    --sw-stage-ink: #e6edf3;
+    --sw-stage-line: #233546;
+
+    --sw-radius: 10px;
+    --sw-radius-sm: 8px;
+    --sw-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --sw-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    /* Link colour in support-footer.js. */
+    --sw-support-accent: var(--sw-accent);
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --sw-paper: #0b1621;
+      --sw-card: #12212f;
+      --sw-tint: #1a2e40;
+      --sw-ink: #e6edf3;
+      --sw-muted: #9fb0bf;
+      --sw-faint: #74879a;
+      --sw-line: #233546;
+      --sw-accent: #6c9fd0;
+      --sw-on-accent: #0b1621;
+      --sw-ok: #6fb592;
+      --sw-warn: #d1ad5a;
+      --sw-bad: #e07a70;
+      --sw-code-bg: #060e16;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --sw-paper: #0b1621;
+    --sw-card: #12212f;
+    --sw-tint: #1a2e40;
+    --sw-ink: #e6edf3;
+    --sw-muted: #9fb0bf;
+    --sw-faint: #74879a;
+    --sw-line: #233546;
+    --sw-accent: #6c9fd0;
+    --sw-on-accent: #0b1621;
+    --sw-ok: #6fb592;
+    --sw-warn: #d1ad5a;
+    --sw-bad: #e07a70;
+    --sw-code-bg: #060e16;
+    color-scheme: dark;
+  }
+
+  /* ── Base elements ─────────────────────────────────────────────────────────── */
+  /* No box-sizing, font-size or line-height here: each tool keeps its own
+     density and layout maths, and this file must not move a tool's layout. */
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--sw-paper);
+    color: var(--sw-ink);
+    font-family: var(--sw-font);
+  }
+  a { color: var(--sw-accent); }
+  code, kbd, samp, pre { font-family: var(--sw-mono); }
+  code { font-size: 0.92em; }
+
+  button {
+    font: inherit;
+    font-size: 0.9rem;
+    border: 1px solid var(--sw-line);
+    background: var(--sw-card);
+    color: var(--sw-ink);
+    border-radius: var(--sw-radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--sw-accent); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:disabled:hover { border-color: var(--sw-line); }
+
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+  select,
+  textarea {
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 5px 8px;
+    border-radius: var(--sw-radius-sm);
+    border: 1px solid var(--sw-line);
+    background: var(--sw-card);
+    color: var(--sw-ink);
+  }
+  input[type="checkbox"], input[type="radio"], input[type="range"], progress { accent-color: var(--sw-accent); }
+
+  :focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+
+  dialog {
+    border: 1px solid var(--sw-line);
+    border-radius: var(--sw-radius);
+    background: var(--sw-card);
+    color: var(--sw-ink);
+  }
+  dialog::backdrop { background: rgba(6, 14, 22, 0.6); }
+
+  /* ── The navy bar (a tool's header) ────────────────────────────────────────── */
+  .sw-bar {
+    background: var(--sw-navy);
+    color: var(--sw-navy-ink);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+  }
+  .sw-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: inherit;
+    text-decoration: none;
+  }
+  .sw-mark {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 1.6em;
+    height: 1.6em;
+    background: var(--sw-accent-soft);
+    color: var(--sw-navy);
+    border-radius: 6px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .sw-mark svg, .sw-mark img { width: 70%; height: 70%; display: block; }
+  .sw-sub { color: var(--sw-navy-ink-2); font-size: 0.9rem; margin: 0; }
+  .sw-bar a { color: var(--sw-accent-soft); }
+  .sw-bar button, .sw-bar .sw-btn {
+    background: transparent;
+    color: var(--sw-navy-ink);
+    border: 1px solid var(--sw-navy-line);
+    border-radius: var(--sw-radius-sm);
+    padding: 4px 12px;
+  }
+  /* A link dressed as a button (an "Open the desktop app" link, say). */
+  a.sw-btn { text-decoration: none; display: inline-block; }
+  .sw-bar button:hover, .sw-bar .sw-btn:hover { border-color: var(--sw-accent-soft); }
+  .sw-bar button.sw-primary, .sw-bar .sw-btn.sw-primary {
+    background: var(--sw-accent-soft);
+    border-color: var(--sw-accent-soft);
+    color: var(--sw-navy);
+    font-weight: 600;
+  }
+  .sw-bar :focus-visible { outline-color: var(--sw-accent-soft); }
+
+  /* ── Components ────────────────────────────────────────────────────────────── */
+  .sw-card {
+    background: var(--sw-card);
+    border: 1px solid var(--sw-line);
+    border-radius: var(--sw-radius);
+  }
+  .sw-tinted {
+    background: var(--sw-tint);
+    border-radius: var(--sw-radius-sm);
+  }
+  .sw-muted { color: var(--sw-muted); }
+
+  button.sw-primary, .sw-btn.sw-primary {
+    background: var(--sw-accent);
+    border-color: var(--sw-accent);
+    color: var(--sw-on-accent);
+    font-weight: 600;
+  }
+  button.sw-primary:hover, .sw-btn.sw-primary:hover { filter: brightness(1.08); }
+  button.sw-primary:disabled { filter: none; }
+  button.sw-quiet { background: transparent; }
+
+  /* Segmented control: <div class="sw-seg"><label><input type="radio"><span>…</span></label>…</div> */
+  .sw-seg {
+    display: inline-flex;
+    border: 1px solid var(--sw-line);
+    border-radius: var(--sw-radius-sm);
+    overflow: hidden;
+  }
+  .sw-seg label { position: relative; }
+  .sw-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .sw-seg span { display: block; padding: 5px 11px; font-size: 0.86rem; color: var(--sw-muted); }
+  .sw-seg label + label span { border-left: 1px solid var(--sw-line); }
+  .sw-seg input:checked + span { background: var(--sw-accent); color: var(--sw-on-accent); }
+  .sw-seg input:focus-visible + span { outline: 2px solid var(--sw-accent); outline-offset: -2px; }
+
+  /* A command with a copy button: <div class="sw-cmd"><code>…</code><button>Copy</button></div> */
+  .sw-cmd {
+    display: flex;
+    align-items: stretch;
+    background: var(--sw-code-bg);
+    color: var(--sw-code-ink);
+    border: 1px solid var(--sw-code-line);
+    border-radius: var(--sw-radius-sm);
+    overflow: hidden;
+  }
+  .sw-cmd code {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+  .sw-cmd button {
+    flex: none;
+    border: 0;
+    border-left: 1px solid var(--sw-code-line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--sw-code-ink);
+    padding: 0 12px;
+  }
+  .sw-cmd button:hover { background: rgba(127, 168, 206, 0.18); }
+
+  .sw-stage { background: var(--sw-stage); color: var(--sw-stage-ink); }
+}

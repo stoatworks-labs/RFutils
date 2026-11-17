@@ -34,67 +34,77 @@ export function App(): JSX.Element {
   const [tab, setTab] = useState<TabId>('convert');
 
   return (
-    <div className="app">
+    <>
+      {/* Full window width: the navy bar (sw-bar, from the shared theme) spans the
+          window, its contents and the tabs line up with the page column below. */}
       <header className="app__header">
-        <div className="app__brand">
-          <h1>RFutils</h1>
-          <span className="app__tagline">RF coordination &amp; wireless-mic suite</span>
-          {/* Opens the shared About dialog — see public/about.js, which delegates
-              this attribute from the document, so nothing needs importing here. */}
-          <button type="button" className="app__about" data-stoatworks-about>
-            About
-          </button>
-        </div>
-        <nav className="tabs" role="tablist">
-          {VISIBLE_TABS.map((t) => (
-            <button
-              key={t.id}
-              role="tab"
-              aria-selected={tab === t.id}
-              className={`tabs__tab${tab === t.id ? ' tabs__tab--active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-              {t.planned && <span className="tabs__soon">soon</span>}
+        <div className="sw-bar app__bar">
+          <div className="app__brand">
+            <h1 className="sw-brand">
+              <span className="sw-mark" aria-hidden="true">≈</span> RFutils
+            </h1>
+            <span className="app__tagline sw-sub">RF coordination &amp; wireless-mic suite</span>
+            {/* Opens the shared About dialog — see public/about.js, which delegates
+                this attribute from the document, so nothing needs importing here. */}
+            <button type="button" className="app__about" data-stoatworks-about>
+              About
             </button>
-          ))}
-        </nav>
+          </div>
+        </div>
+        <div className="app__tabs">
+          <nav className="tabs" role="tablist">
+            {VISIBLE_TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={`tabs__tab${tab === t.id ? ' tabs__tab--active' : ''}`}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+                {t.planned && <span className="tabs__soon">soon</span>}
+              </button>
+            ))}
+          </nav>
+        </div>
       </header>
 
-      {staticBuild && (
-        <p className="app__notice">
-          This is the hosted build: everything runs in your browser and no file is uploaded
-          anywhere. Live monitoring, device discovery and programming receivers need the
-          RFutils server on your own network —{' '}
-          <a href="https://github.com/stoatworks-labs/RFutils">download RFutils</a> for those.
-        </p>
-      )}
-
-      <main>
-        {tab === 'convert' && <ConvertTab />}
-        {tab === 'monitor' && !staticBuild && <MonitorTab />}
-        {tab === 'inventory' && <InventoryTab />}
-        {tab === 'coordination' && <CoordinationTab />}
-        {tab === 'allocation' && <AllocationTab />}
-        {tab === 'deployment' && !staticBuild && <DeploymentTab />}
-      </main>
-
-      {/* Needs the server, which writes the bundle; the hosted build has none. */}
-      {!staticBuild && <DiagnosticsPanel />}
-
-      <footer className="app__footer">
-        AI-assisted build · combines wsm-wwb-bridge, pmse-to-wwb and MicWizard · verify
-        experimental exports before a live show.
-        {/* Hosted build only: a local copy has no business pointing at the web tool. */}
+      <div className="app">
         {staticBuild && (
-          <>
-            {' · '}
-            <a href="https://stoatworks-labs.com/web-tools/rfutils/" target="_blank" rel="noopener">
-              About this tool
-            </a>
-          </>
+          <p className="app__notice">
+            This is the hosted build: everything runs in your browser and no file is uploaded
+            anywhere. Live monitoring, device discovery and programming receivers need the
+            RFutils server on your own network —{' '}
+            <a href="https://github.com/stoatworks-labs/RFutils">download RFutils</a> for those.
+          </p>
         )}
-      </footer>
-    </div>
+
+        <main>
+          {tab === 'convert' && <ConvertTab />}
+          {tab === 'monitor' && !staticBuild && <MonitorTab />}
+          {tab === 'inventory' && <InventoryTab />}
+          {tab === 'coordination' && <CoordinationTab />}
+          {tab === 'allocation' && <AllocationTab />}
+          {tab === 'deployment' && !staticBuild && <DeploymentTab />}
+        </main>
+
+        {/* Needs the server, which writes the bundle; the hosted build has none. */}
+        {!staticBuild && <DiagnosticsPanel />}
+
+        <footer className="app__footer">
+          AI-assisted build · combines wsm-wwb-bridge, pmse-to-wwb and MicWizard · verify
+          experimental exports before a live show.
+          {/* Hosted build only: a local copy has no business pointing at the web tool. */}
+          {staticBuild && (
+            <>
+              {' · '}
+              <a href="https://stoatworks-labs.com/web-tools/rfutils/" target="_blank" rel="noopener">
+                About this tool
+              </a>
+            </>
+          )}
+        </footer>
+      </div>
+    </>
   );
 }
